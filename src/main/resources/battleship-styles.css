@@ -1,0 +1,25 @@
+.big-board {
+     -fx-padding: 0, 0, 0, 0 ;
+    -fx-alignment: center;
+ }
+*.cell {
+    -fx-background-color: black, white ;
+    -fx-background-insets: 0, 0 1 1 0 ;
+}
+*.first-column {
+    -fx-background-color: black, white ;
+    -fx-background-insets: 0, 0 1 1 1 ;
+}
+*.first-row {
+    -fx-background-color: black, white ;
+    -fx-background-insets: 0, 1 1 1 0 ;
+}
+*.first-cell {
+    -fx-background-color: black, white ;
+    -fx-background-insets: 0, 1 1 1 1 ;
+}
+
+.smaller-board {
+    -fx-padding: 0, 0, 0, 0 ;
+    -fx-alignment: center;
+}

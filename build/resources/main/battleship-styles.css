@@ -1,0 +1,26 @@
+.big-board {
+     -fx-padding: 25, 25, 0, 0 ;
+     -fx-alignment: bottom-left;
+ }
+*.cell {
+    -fx-background-color: black, white ;
+    -fx-background-insets: 0, 0 1 1 0 ;
+}
+*.first-column {
+    -fx-background-color: black, white ;
+    -fx-background-insets: 0, 0 1 1 1 ;
+}
+*.first-row {
+    -fx-background-color: black, white ;
+    -fx-background-insets: 0, 1 1 1 0 ;
+}
+*.first-cell {
+    -fx-background-color: black, white ;
+    -fx-background-insets: 0, 1 1 1 1 ;
+    -fx-background-image: url("ship.png");
+}
+
+.smaller-board {
+    -fx-padding: 25, 25, 0, 0 ;
+    -fx-alignment: top-right;
+}
