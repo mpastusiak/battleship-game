@@ -18,6 +18,14 @@
     -fx-background-color: black, white ;
     -fx-background-insets: 0, 1 1 1 1 ;
 }
+*.with-ship {
+    -fx-background-color: black, red ;
+    -fx-background-insets: 0, 0 1 1 0 ;
+}
+*.reserved {
+    -fx-background-color: black, gray ;
+    -fx-background-insets: 0, 0 1 1 0 ;
+}
 
 .smaller-board {
     -fx-padding: 0, 0, 0, 0 ;

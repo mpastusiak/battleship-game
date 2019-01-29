@@ -1,8 +1,7 @@
 package com.projects.battleship;
 
 import javafx.scene.image.Image;
-
-import java.net.URL;
+import javafx.scene.image.ImageView;
 
 public class Ship {
     private int shipSize;
@@ -12,6 +11,8 @@ public class Ship {
     private char shipOrientation;
     private int shipWidth;
     private int shipHeight;
+    private double actualXPosition;
+    private double actualYPosition;
 
     public Ship(int shipSize, int fitHeight, char shipOrientation) {
         this.shipSize = shipSize;
@@ -29,8 +30,11 @@ public class Ship {
         this.shipOrientation = shipOrientation;
     }
 
-    public Image getImageClassShip() {
-        return imageClassShip;
+    public ImageView getShipImageView() {
+        Image image = imageClassShip;
+        ImageView imageView = new ImageView(image);
+        imageView.getStyleClass().add("ship");
+        return imageView;
     }
 
     public int getShipSize() {
@@ -39,6 +43,24 @@ public class Ship {
 
     public char getShipOrientation() {
         return shipOrientation;
+    }
+
+    public double getActualXPosition() {
+        return actualXPosition;
+    }
+
+    public double getActualYPosition() {
+        return actualYPosition;
+    }
+
+    public void setActualXPosition(double positionX) {
+        actualXPosition = positionX;
+        getShipImageView().getProperties().put("gridpane-column", positionX);
+    }
+
+    public void setActualYPosition(double positionY) {
+        actualYPosition = positionY;
+        getShipImageView().getProperties().put("gridpane-row", positionY);
     }
 
     public void setShipOrientation(char shipOrientation) {
