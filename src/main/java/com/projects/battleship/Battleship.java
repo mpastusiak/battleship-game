@@ -28,7 +28,7 @@ import static java.lang.Math.abs;
 
 public class Battleship extends Application {
 
-    private double newX, newY, oldX, oldY;
+    private double newX, newY, oldX, oldY, offX, offY;
     // private String offX, offY;
     public static void main(String[] args) {
         launch(args);
@@ -80,8 +80,8 @@ public class Battleship extends Application {
         for( Node child: bigPane.getChildrenUnmodifiable()) {
             if( child instanceof ImageView) {
                 ImageView imageView = (ImageView) child;
-                double offX = imageView.getX();
-                double offY = imageView.getY();
+                oldX = imageView.getX();
+                oldY = imageView.getY();
 
                 HashMap<ImageView, Ship> tmpMap = bigBoard.getFleetMap();
                 Ship thisShip = (Ship) tmpMap.get(imageView);
@@ -95,8 +95,8 @@ public class Battleship extends Application {
                         event.setDragDetect(true);
                         // oldX = imageView.getX() - event.getX();
                         // oldY = imageView.getY() - event.getY();
-                        oldX = event.getX();
-                        oldY = event.getY();
+                        offX = imageView.getX() - event.getX();
+                        offY = imageView.getY() - event.getY();
                         /*
                         if (event.getButton() == MouseButton.SECONDARY) {
                             ship.setShipOrientation('h');
@@ -116,6 +116,14 @@ public class Battleship extends Application {
                             public void handle(MouseEvent event) {
                                 imageView.setMouseTransparent(false);
                                 System.out.println("Event on Source: mouse released");
+                                newX = oldX;
+                                newY = oldY;
+                                int actualPostionX = thisShip.getActualXPosition();
+                                int actualPostionY = thisShip.getActualYPosition();
+                                int positionX = (int) (actualPostionX + (oldX / 30));
+                                int positionY = (int) (actualPostionY + (oldY / 30));
+                                boolean checkCompletePut = bigBoard.putIntoBoard(thisShip, positionY, positionX);
+                                System.out.println(positionX + " : " + positionY + " : " + checkCompletePut);
                             }
                 });
 
@@ -125,16 +133,19 @@ public class Battleship extends Application {
                             public void handle(MouseEvent event) {
                                 System.out.println("Event on Source: mouse dragged");
                                 event.setDragDetect(false);
-                                newX = event.getX() + oldX - (0.5 * lengthSquare);
-                                newY = event.getY() + oldY - (0.5 * lengthSquare);
-                                double roundNewX = Math.round(newX/lengthSquare) * lengthSquare;
-                                double roundNewY = Math.round(newY/lengthSquare) * lengthSquare;
-                                imageView.setTranslateX(roundNewX);
-                                imageView.setTranslateY(roundNewY);
-                                oldX = roundNewX;
-                                oldY = roundNewY;
+                                newX = event.getX() + offX - (0.5 * lengthSquare);
+                                newY = event.getY() + offY - (0.5 * lengthSquare);
+                                double x = Math.min(oldX, newX);
+                                double y = Math.min(oldY, newY);
+                                double roundNewX = Math.round(x/lengthSquare) * lengthSquare;
+                                double roundNewY = Math.round(y/lengthSquare) * lengthSquare;
+                                imageView.setX(roundNewX);
+                                imageView.setY(roundNewY);
+                                bigPane.setBorder(new Border(new BorderStroke(Color.BLACK,
+                                        BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
+                                oldX = newX;
+                                oldY = newY;
                                 System.out.println(roundNewX + " : " + roundNewY);
-                                System.out.println(imageView.getProperties().toString());
                                 bigPane.toFront();
                             }
                 });
@@ -148,14 +159,14 @@ public class Battleship extends Application {
                             }
                 });
 
-/*                imageView.addEventHandler(MouseDragEvent.MOUSE_DRAG_RELEASED, new EventHandler<MouseDragEvent>() {
+      /*         imageView.addEventHandler(MouseDragEvent.MOUSE_DRAG_RELEASED, new EventHandler<MouseDragEvent>() {
                     @Override
                     public void handle(MouseDragEvent event) {
                         System.out.println("Mouse Drag Released");
                         newX = oldX + event.getX();
                         newY = oldY + event.getY();
-                        imageView.setTranslateX(500);
-                        imageView.setTranslateY(500);
+                        imageView.setX(newX);
+                        imageView.setY(newY);
                         oldX = newX;
                         oldY = newY;
                         System.out.println(newX + " : " + newY);

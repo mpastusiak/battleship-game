@@ -11,8 +11,9 @@ public class Ship {
     private char shipOrientation;
     private int shipWidth;
     private int shipHeight;
-    private double actualXPosition;
-    private double actualYPosition;
+    private int actualXPosition;
+    private int actualYPosition;
+    private ImageView shipImageView;
 
     public Ship(int shipSize, int fitHeight, char shipOrientation) {
         this.shipSize = shipSize;
@@ -30,11 +31,16 @@ public class Ship {
         this.shipOrientation = shipOrientation;
     }
 
-    public ImageView getShipImageView() {
+    public ImageView setShipImageView() {
         Image image = imageClassShip;
         ImageView imageView = new ImageView(image);
         imageView.getStyleClass().add("ship");
+        this.shipImageView = imageView;
         return imageView;
+    }
+
+    public ImageView getShipImageView() {
+        return shipImageView;
     }
 
     public int getShipSize() {
@@ -45,21 +51,21 @@ public class Ship {
         return shipOrientation;
     }
 
-    public double getActualXPosition() {
+    public int getActualXPosition() {
         return actualXPosition;
     }
 
-    public double getActualYPosition() {
+    public int getActualYPosition() {
         return actualYPosition;
     }
 
-    public void setActualXPosition(double positionX) {
-        actualXPosition = positionX;
+    public void setActualXPosition(int positionX) {
+        this.actualXPosition = positionX;
         getShipImageView().getProperties().put("gridpane-column", positionX);
     }
 
-    public void setActualYPosition(double positionY) {
-        actualYPosition = positionY;
+    public void setActualYPosition(int positionY) {
+        this.actualYPosition = positionY;
         getShipImageView().getProperties().put("gridpane-row", positionY);
     }
 

@@ -123,9 +123,7 @@ public class Board {
             for(int j = 0; j < shipSize; j++ ) {
                 needCells.put(idShipPosition + j, "with-ship");
 
-                if (checkKeyOnMap(idShipPosition + j) ||
-                        checkKeyOnMap(idShipPosition + j - 10) ||
-                        checkKeyOnMap(idShipPosition + j + 10)) {
+                if (checkKeyOnMap(idShipPosition + j)) {
                     fullLoop = false;
                     break;
                 } else {
@@ -153,9 +151,7 @@ public class Board {
             for(int j = 0; j < shipSize; j++ ) {
                 needCells.put(idShipPosition + (j * 10), "with-ship");
 
-                if (checkKeyOnMap(idShipPosition + (j * 10)) ||
-                        checkKeyOnMap(idShipPosition + (j * 10) - 1) ||
-                        checkKeyOnMap(idShipPosition + (j * 10) + 1)) {
+                if (checkKeyOnMap(idShipPosition + (j * 10))) {
                     fullLoop = false;
                     break;
                 } else {
@@ -179,9 +175,20 @@ public class Board {
         }
 
         if (fullLoop) {
-            ImageView imageView = ship.getShipImageView();
-            imageView.setId("ship" + idShipPosition);
+            ImageView imageView;
+            if (ship.getShipImageView() != null) {
+                imageView = ship.getShipImageView();
+            } else {
+                imageView = ship.setShipImageView();
+            }
+            System.out.println(imageView + " | " + shipStartPositionX + " | " + shipStartPositionY);
+            imageView.getProperties().put("gridpane-column", shipStartPositionX);
+            imageView.getProperties().put("gridpane-row", shipStartPositionY);
+            System.out.println(imageView.getProperties().toString());
             board.add(imageView, shipStartPositionX, shipStartPositionY, colspan, rowspan);
+
+            ship.setActualXPosition(shipStartPositionX);
+            ship.setActualYPosition(shipStartPositionY);
             fleetMap.put(imageView, ship);
             System.out.println(imageView.getProperties());
             reservedCalls.putAll(needCells);
