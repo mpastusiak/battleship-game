@@ -319,8 +319,6 @@ public class Board {
             putGameStatus((Integer)pair.getKey(), pair.getValue().toString());
             // iterator.remove();
         }
-
-        System.out.println(getReservedCalls().toString());
     }
 
     public HashMap<ImageView, Ship> getFleetMap() {
@@ -341,6 +339,14 @@ public class Board {
 
     public GridPane getBoard() {
         return board;
+    }
+
+    public void putFleetMap(ImageView imageView, Ship ship) {
+        this.fleetMap.put(imageView, ship);
+    }
+
+    public void removeFleetMap(ImageView imageView) {
+        this.fleetMap.remove(imageView);
     }
 
 }

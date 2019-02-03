@@ -1,5 +1,7 @@
 package com.projects.battleship;
 
+import javafx.scene.Group;
+import javafx.scene.text.*;
 import javafx.application.Application;
 import javafx.event.Event;
 import javafx.event.EventHandler;
@@ -10,6 +12,8 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Control;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -23,16 +27,20 @@ import javafx.stage.Stage;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 import static java.lang.Math.abs;
 
 public class Battleship extends Application {
 
     private Board bigBoard;
+    private LinkedList<TextField> textFieldShips = new LinkedList<>();
     private final DataFormat buttonFormat = new DataFormat("MyButton");
     private Node draggingButton;
-
+    private RandomValues generator = new RandomValues();
+    private boolean iDoSomething = false;
 
     public static void main(String[] args) {
         launch(args);
@@ -46,6 +54,38 @@ public class Battleship extends Application {
             HBox hBox = new HBox(25);
             hBox.setAlignment(Pos.CENTER);
 
+            GridPane leftPlane = new GridPane();
+            Label optionsLabel = new Label();
+            optionsLabel.setText("Options");
+            leftPlane.add(optionsLabel,0,0,3,1);
+
+            for (int i = 1; i <= 5; i++) {
+                Label textShip = new Label();
+                textShip.setText("Number of " + i + " size ship:");
+                leftPlane.add(textShip, 0, (i*2)-1, 3, 1);
+
+                Button buttonMinusShip = new Button();
+                buttonMinusShip.setText("-");
+                clickButton(buttonMinusShip);
+                leftPlane.add(buttonMinusShip, 0,(i*2),1,1);
+
+                TextField textFieldShip = new TextField();
+                textFieldShip.setText("1");
+                textFieldShips.add(textFieldShip);
+                leftPlane.add(textFieldShips.getLast(), 1,(i*2),1,1);
+
+                Button buttonPlusShip = new Button();
+                buttonPlusShip.setText("+");
+                clickButton(buttonPlusShip);
+                leftPlane.add(buttonPlusShip, 2,(i*2),1,1);
+            }
+
+            Button buttonRefresh = new Button();
+            buttonRefresh.setText("Confirm");
+            clickRefresh(buttonRefresh);
+            leftPlane.add(buttonRefresh, 0, 11, 3, 2);
+
+
             int lengthSquare = 30;
             int boardSize = 10;
 
@@ -53,33 +93,24 @@ public class Battleship extends Application {
             GridPane bigPane = bigBoard.doBoard();
             bigPane.setId("bigPane");
 
-            int ships = 5;
+            refreshBoard();
+
+            /*
             RandomValues generator = new RandomValues();
-            int shipMaxPositionX;
-            int shipMaxPositionY;
             Map<Integer, Ship> playerFleet = new HashMap<>();
 
-            for (int i = ships; i > 0; i--) {
-                char shipRandomOrientation = generator.randomOrientation();
+            for (int i = 0; i < textFieldShips.size(); i++) {
+                for (int j = 0; j < Integer.valueOf(textFieldShips.get(i).getText()); j++) {
 
-                if (shipRandomOrientation == 'v') {
-                    shipMaxPositionX = boardSize;
-                    shipMaxPositionY = boardSize - i;
-                } else {
-                    shipMaxPositionX = boardSize - i;
-                    shipMaxPositionY = boardSize;
-                }
+                    Ship randomShip = generator.randomShip(bigBoard, i + 1);
 
-                Ship ship = new Ship(i, lengthSquare, shipRandomOrientation);
-
-                int shipPositionX = generator.randomValue(shipMaxPositionX);
-                int shipPositionY = generator.randomValue(shipMaxPositionY);
-
-                boolean checkCompletePut = bigBoard.putIntoBoard(ship, shipPositionY, shipPositionX, "add");
-                if (checkCompletePut != true) {
-                    i++;
+                    boolean checkCompletePut = bigBoard.putIntoBoard(randomShip, randomShip.getActualYPosition(), randomShip.getActualXPosition(), "add");
+                    if (checkCompletePut != true) {
+                        j--;
+                    }
                 }
             }
+            */
 
             bigBoard.drawContentBoard();
 
@@ -100,11 +131,11 @@ public class Battleship extends Application {
             Board smallBoard = new Board(10, 10, 20, "smaller-board");
             GridPane smallPane = smallBoard.doBoard();
 
-            Pane leftPlane = new Pane();
-            leftPlane.getChildren().addAll(bigPane);
+            Pane centerPlane = new Pane();
+            centerPlane.getChildren().addAll(bigPane);
             Pane rightPlane = new Pane();
             rightPlane.getChildren().add(smallPane);
-            hBox.getChildren().addAll(leftPlane, rightPlane);
+            hBox.getChildren().addAll(leftPlane, centerPlane, rightPlane);
 
             LinearGradient backgroundGradient = new LinearGradient(0.5, 0.5, 1, 1, true, CycleMethod.NO_CYCLE, new Stop(0, Color.AQUA), new Stop(1, Color.BLUE));
             BackgroundFill backgroundFill = new BackgroundFill(backgroundGradient, CornerRadii.EMPTY, new Insets(0, 0, 0, 0));
@@ -124,6 +155,104 @@ public class Battleship extends Application {
         } catch(Exception e) {
             e.printStackTrace();
         } }
+
+        private void refreshBoard() {
+            for (int i = 0; i < textFieldShips.size(); i++) {
+                for (int j = 0; j < Integer.valueOf(textFieldShips.get(i).getText()); j++) {
+
+                    Ship randomShip = generator.randomShip(bigBoard, i + 1);
+
+                    boolean checkCompletePut = bigBoard.putIntoBoard(randomShip, randomShip.getActualYPosition(), randomShip.getActualXPosition(), "add");
+                    if (checkCompletePut != true) {
+                        j--;
+                    }
+                }
+            }
+        }
+
+        private boolean checkFreeSpace(int newShipSize) {
+            double occupiedSpace = newShipSize;
+            for (int i = 0; i < textFieldShips.size(); i++) {
+                occupiedSpace += Integer.valueOf(textFieldShips.get(i).getText()) * (i + 1);
+            }
+            double occupiedSpacePercent = occupiedSpace / (bigBoard.getBoardRows() * bigBoard.getBoardColumns());
+            if (occupiedSpacePercent <= 0.35) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        private void clickRefresh(Button button) {
+        button.setOnMousePressed(e -> {
+            bigBoard.getBoard().getChildren().clear();
+            refreshBoard();
+            bigBoard.drawContentBoard();
+        });
+        }
+
+
+    private void disablePane(GridPane pane, boolean setDisable){
+        for( Node child: pane.getChildrenUnmodifiable()) {
+            child.setDisable(setDisable);
+        }
+    }
+
+
+        private void clickButton(Button button) {
+        button.setOnMousePressed(e -> {
+            if (!iDoSomething) {
+                iDoSomething = true;
+                String rowButton = button.getProperties().get("gridpane-row").toString();
+                int shipSize = Integer.valueOf(rowButton) / 2;
+                TextField thisTextField = textFieldShips.get(shipSize - 1);
+                int getActualValue = Integer.valueOf(thisTextField.getText());
+
+                if (button.getText() == "-" && getActualValue > 0) {
+                    thisTextField.setText(Integer.toString(getActualValue - 1));
+
+                    Iterator<Map.Entry<ImageView, Ship>>
+                            iterator = bigBoard.getFleetMap().entrySet().iterator();
+                    outerloop:
+                    while (iterator.hasNext()) {
+                        Map.Entry<ImageView, Ship> entry = iterator.next();
+                        if (entry.getValue().getShipSize() == shipSize) {
+                            boolean checkCompletePut = bigBoard.putIntoBoard(entry.getValue(), 0, 0, "remove");
+                            bigBoard.removeFleetMap(entry.getKey());
+                            bigBoard.getBoard().getChildren().remove(entry.getKey());
+                            iDoSomething = false;
+                            break outerloop;
+                        }
+                    }
+                } else if (button.getText() == "+" && checkFreeSpace(shipSize)) {
+                    boolean isAdd = false;
+                    long startTime = System.nanoTime();
+                    while (!isAdd) {
+                        Ship randomShip = generator.randomShip(bigBoard, shipSize);
+                        isAdd = bigBoard.putIntoBoard(randomShip, randomShip.getActualYPosition(), randomShip.getActualXPosition(), "add");
+                        dragButton(randomShip.getShipImageView());
+                        clickShip(randomShip.getShipImageView());
+                        if (isAdd) {
+                            thisTextField.setText(Integer.toString(getActualValue + 1));
+                            bigBoard.putFleetMap(randomShip.getShipImageView(), randomShip);
+                            iDoSomething = false;
+                        }
+                        long endTime = System.nanoTime();
+                        if (endTime - startTime > Math.pow(10, 9) * 2) {
+                            System.out.println("I can't add this ship! Maybe you can change ships positions?");
+                            iDoSomething = false;
+                            break;
+                        }
+                    }
+                } else {
+                    System.out.println("You have to enough ships on this board!");
+                    iDoSomething = false;
+                }
+            } else {
+                System.out.println("I do something!");
+            }
+        });
+    }
 
     private void clickShip(ImageView shipImageView) {
         shipImageView.setOnMousePressed(e -> {
@@ -147,7 +276,6 @@ public class Battleship extends Application {
                 checkCompletePut = false;
                 boolean changeVector = false;
                 for (int i = 0; !checkCompletePut; i++) {
-                    System.out.println(i);
                    if (thisShipOrientation == 'v' || (thisShipOrientation == 'h' && changeVector == true)) {
                        checkCompletePut = bigBoard.putIntoBoard(thisShip, shipStartPositionY, shipStartPositionX + i, "add");
                        if ((i == bigBoard.getBoardRows() - 1) && !changeVector) {
@@ -172,14 +300,12 @@ public class Battleship extends Application {
                     int newShipStartPositionX = generator.randomValue(bigBoard.getBoardColumns());
                     int newShipStartPositionY = generator.randomValue(bigBoard.getBoardRows());
                     checkCompletePut = bigBoard.putIntoBoard(thisShip, newShipStartPositionY, newShipStartPositionX, "add");
-                    System.out.println(checkCompletePut + " | " + newShipStartPositionX + " | " + newShipStartPositionY);
                 }
             }
         });
     }
 
-
-        private void dragButton(ImageView b) {
+    private void dragButton(ImageView b) {
         b.setOnDragDetected(e -> {
             Dragboard db = b.startDragAndDrop(TransferMode.MOVE);
             db.setDragView(b.snapshot(null, null));
@@ -187,12 +313,8 @@ public class Battleship extends Application {
             cc.put(buttonFormat, " ");
             db.setContent(cc);
             draggingButton = b;
-
-            HashMap<ImageView, Ship> tmpMap = bigBoard.getFleetMap();
-            Ship thisShip = (Ship) tmpMap.get(draggingButton);
-
-            boolean checkCompletePut = bigBoard.putIntoBoard(thisShip, 0, 0, "remove");
         });
+
     }
 
     private void addDropHandling(StackPane pane) {
@@ -209,16 +331,16 @@ public class Battleship extends Application {
             if (db.hasContent(buttonFormat)) {
                 ((Pane)draggingButton.getParent()).getChildren().remove(draggingButton);
 
+                HashMap<ImageView, Ship> tmpMap = bigBoard.getFleetMap();
+                Ship thisShip = (Ship) tmpMap.get(draggingButton);
+                boolean checkCompletePut = bigBoard.putIntoBoard(thisShip, 0, 0, "remove");
+
                 Integer idPane = Integer.parseInt(pane.getId());
 
                 int shipStartPositionX = (int) Math.floor(idPane / 10);
                 int shipStartPositionY = (int) idPane % 10;
 
-                HashMap<ImageView, Ship> tmpMap = bigBoard.getFleetMap();
-                Ship thisShip = (Ship) tmpMap.get(draggingButton);
-
-                boolean checkCompletePut = bigBoard.putIntoBoard(thisShip, shipStartPositionY, shipStartPositionX, "move");
-                System.out.println(bigBoard.getReservedCalls().toString());
+                checkCompletePut = bigBoard.putIntoBoard(thisShip, shipStartPositionY, shipStartPositionX, "move");
                 bigBoard.drawContentBoard();
                 if (checkCompletePut) {
                     e.setDropCompleted(true);

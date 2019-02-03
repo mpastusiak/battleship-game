@@ -30,6 +30,7 @@ public class Ship {
         }
         this.imageClassShip = new Image(urlImageShip, shipWidth, shipHeight, false, true);
         this.shipOrientation = shipOrientation;
+        setShipImageView();
     }
 
     public ImageView setShipImageView() {
