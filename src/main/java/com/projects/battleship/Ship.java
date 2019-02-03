@@ -2,6 +2,7 @@ package com.projects.battleship;
 
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.paint.Color;
 
 public class Ship {
     private int shipSize;
@@ -81,5 +82,6 @@ public class Ship {
             this.shipHeight = fitHeight;
         }
         this.imageClassShip = new Image(urlImageShip, shipWidth, shipHeight, false, true);
+        getShipImageView().setImage(this.imageClassShip);
     }
 }

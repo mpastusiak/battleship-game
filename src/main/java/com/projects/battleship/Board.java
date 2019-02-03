@@ -3,10 +3,7 @@ package com.projects.battleship;
 import javafx.event.EventHandler;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.RowConstraints;
+import javafx.scene.layout.*;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -18,7 +15,7 @@ public class Board {
     private int lengthSquare;
     private String boardStyle;
     private GridPane board;
-    private HashMap<Integer, String> reservedCalls;
+    private HashMap<Integer, String> reservedCells;
     private HashMap<ImageView, Ship> fleetMap;
 
     public Board(int boardColumns, int boardRows, int lengthSquare, String boardStyle) {
@@ -27,6 +24,8 @@ public class Board {
         this.lengthSquare = lengthSquare;
         this.boardStyle = boardStyle;
     }
+
+
 
     public GridPane doBoard() {
         GridPane board = new GridPane();
@@ -46,8 +45,9 @@ public class Board {
 
         for (int i = 0; i < boardRows; i++) {
             for (int j = 0; j < boardColumns; j++) {
-                Pane pane = new Pane();
-                pane.setId("c" + j + "r" + i);
+                StackPane pane = new StackPane();
+                Integer idShipPosition = i * 10 + j;
+                pane.setId(idShipPosition.toString());
                 pane.getStyleClass().add("cell");
                 pane.getProperties().put("game-status","empty");
                 board.add(pane, i, j);
@@ -63,10 +63,12 @@ public class Board {
             }
         }
         this.board = board;
-        this.reservedCalls = new HashMap<>();
+        this.reservedCells = new HashMap<>();
         this.fleetMap = new HashMap<>();
         return board;
     }
+
+
 
     public int getLengthSquare() {
         return lengthSquare;
@@ -81,13 +83,14 @@ public class Board {
     }
 
     public void putStyle(int idShipPosition, String nameStyle) {
+        board.getChildren().get(idShipPosition).getStyleClass().clear();
         board.getChildren().get(idShipPosition).getStyleClass().add(nameStyle);
     }
 
-    public boolean checkKeyOnMap(int keyToBeChecked) {
+    public boolean checkKeyOnMap(int keyToBeChecked, String valueToBeChecked) {
 
         Iterator<Map.Entry<Integer, String>>
-                iterator = reservedCalls.entrySet().iterator();
+                iterator = reservedCells.entrySet().iterator();
 
         boolean isKeyPresent = false;
 
@@ -97,7 +100,8 @@ public class Board {
                     entry
                     = iterator.next();
 
-            if (keyToBeChecked == entry.getKey()) {
+            if (keyToBeChecked == entry.getKey() && (valueToBeChecked == entry.getValue()
+             || (valueToBeChecked == "all" && valueToBeChecked != "empty"))) {
 
                 isKeyPresent = true;
             }
@@ -106,105 +110,217 @@ public class Board {
 
     }
 
-    public boolean putIntoBoard(Ship ship, int shipStartPositionY, int shipStartPositionX) {
+
+
+    public boolean putIntoBoard(Ship ship, int shipNewStartPositionY, int shipNewStartPositionX, String type) {
         char shipOrientation = ship.getShipOrientation();
+        int shipSize = ship.getShipSize();
+        int idNewShipPosition = shipNewStartPositionX * 10 + shipNewStartPositionY;
+        int shipOldStartPositionX = ship.getActualXPosition();
+        int shipOldStartPositionY = ship.getActualYPosition();
+        int idOldShipPosition = shipOldStartPositionX * 10 + shipOldStartPositionY;
+
+        boolean fullLoop = false;
+
+        int colspan = 1;
+        int rowspan = 1;
+
+        char newShipOrientation = shipOrientation;
+
+        if (shipOrientation == 'v') {
+            colspan = 1;
+            rowspan = shipSize;
+            newShipOrientation = 'v';
+        } else if (shipOrientation == 'h') {
+            colspan = shipSize;
+            rowspan = 1;
+            newShipOrientation = 'h';
+        }
+
+        HashMap<Integer, String> addCellsMap = new HashMap<>();
+        HashMap<Integer, String> removeCellsMap = new HashMap<>();
+
+        if(type == "add" || type == "move") {
+            addCellsMap = changePanesOnBoard(ship, shipNewStartPositionY, shipNewStartPositionX, newShipOrientation, "add");
+        } else if (type == "remove") {
+            removeCellsMap = changePanesOnBoard(ship, shipOldStartPositionY, shipOldStartPositionX, newShipOrientation, "remove");
+        }
+
+        int maxIdCell = getBoardColumns() * getBoardRows() - 1;
+        int tmpKey = -1;
+
+        Iterator<Map.Entry<Integer, String>>
+                iterator = addCellsMap.entrySet().iterator();
+        boolean areInBoardRange = true;
+        while (iterator.hasNext()) {
+            Map.Entry<Integer, String>
+                    entry
+                    = iterator.next();
+            if (entry.getKey() > maxIdCell) {
+                areInBoardRange = false;
+            } else if ((entry.getValue() == "with-ship")
+                    && (tmpKey > -1)
+                    && (entry.getKey() - tmpKey == 1)
+                    && (entry.getKey() % 10 == 0)) {
+                areInBoardRange = false;
+            }
+            tmpKey = entry.getKey();
+        }
+
+        ImageView imageView;
+        if (addCellsMap.size() > 0 && areInBoardRange) {
+            if (ship.getShipImageView() != null) {
+                imageView = ship.getShipImageView();
+            } else {
+                imageView = ship.setShipImageView();
+            }
+            imageView.getProperties().put("gridpane-column", shipNewStartPositionX);
+            imageView.getProperties().put("gridpane-row", shipNewStartPositionY);
+            imageView.getProperties().put("gridpane-column-span", colspan);
+            imageView.getProperties().put("gridpane-row-span", rowspan);
+
+            board.add(imageView, shipNewStartPositionX, shipNewStartPositionY, colspan, rowspan);
+
+            ship.setActualXPosition(shipNewStartPositionX);
+            ship.setActualYPosition(shipNewStartPositionY);
+
+            fleetMap.put(imageView, ship);
+            reservedCells.putAll(addCellsMap);
+
+            fullLoop = true;
+        } else if (type == "move") {
+            putIntoBoard(ship,shipOldStartPositionY,shipOldStartPositionX,"add");
+        } else if (type == "remove") {
+            reservedCells.keySet().removeAll(removeCellsMap.keySet());
+        }
+
+        drawContentBoard();
+        return fullLoop;
+    }
+
+
+
+    public HashMap<Integer, String> changePanesOnBoard(Ship ship, int shipStartPositionY, int shipStartPositionX, char shipOrientation, String type) {
         int shipSize = ship.getShipSize();
         int idShipPosition = shipStartPositionX * 10 + shipStartPositionY;
 
         boolean fullLoop = false;
         int colspan;
         int rowspan;
-        HashMap<Integer, String> needCells = new HashMap<>();
+        String typeMainCell = "";
+        String typeSecondaryCell = "";
+        HashMap<Integer, String> changeCells = new HashMap<>();
 
+        if (type == "add") {
+            typeMainCell = "with-ship";
+            typeSecondaryCell = "reserved";
+        } else if (type == "remove") {
+            typeMainCell = "empty";
+            typeSecondaryCell = "empty";
+        }
+
+        outerloop:
         if (shipOrientation == 'v') {
             colspan = 1;
             rowspan = shipSize;
 
+            int secondaryCell3 = (idShipPosition - 1);
+            int secondaryCell4 = (idShipPosition + shipSize);
+
             for(int j = 0; j < shipSize; j++ ) {
-                needCells.put(idShipPosition + j, "with-ship");
 
-                if (checkKeyOnMap(idShipPosition + j)) {
-                    fullLoop = false;
-                    break;
-                } else {
-                    fullLoop = true;
+                int mainCell = idShipPosition + j;
+                int secondaryCell1 = (idShipPosition + j - 10);
+                int secondaryCell2 = (idShipPosition + j + 10);
+
+                if (((checkKeyOnMap(mainCell, "all"))
+                        || (checkKeyOnMap(secondaryCell1, "with-ship"))
+                        || (checkKeyOnMap(secondaryCell2, "with-ship"))
+                        || (checkKeyOnMap(secondaryCell3, "with-ship") && secondaryCell3 % 10 != 9)
+                        || (checkKeyOnMap(secondaryCell4, "with-ship") && secondaryCell4 % 10 != 0))
+                        && type == "add") {
+                    changeCells.clear();
+                    break outerloop;
                 }
 
-                if ((idShipPosition + j - 10) >= 0) {
-                    needCells.put(idShipPosition + j - 10, "reserved");
+                changeCells.put(mainCell, typeMainCell);
+
+                if (secondaryCell1 >= 0) {
+                    changeCells.put(secondaryCell1, typeSecondaryCell);
                 }
-                if((idShipPosition + j + 10) < boardColumns*boardRows) {
-                    needCells.put(idShipPosition + j + 10, "reserved");
+                if(secondaryCell2 < boardColumns*boardRows) {
+                    changeCells.put(secondaryCell2, typeSecondaryCell);
                 }
             }
 
-            if ((idShipPosition - 1) >= 0 && (idShipPosition - 1) % 10 != 9) {
-                needCells.put(idShipPosition - 1, "reserved");
+            if (secondaryCell3 >= 0 && secondaryCell3 % 10 != 9) {
+                changeCells.put(secondaryCell3, typeSecondaryCell);
             }
-            if ((idShipPosition + shipSize) < boardColumns*boardRows && (idShipPosition + shipSize) % 10 != 0) {
-                needCells.put(idShipPosition + shipSize, "reserved");
+            if (secondaryCell4 < boardColumns*boardRows && secondaryCell4 % 10 != 0) {
+                changeCells.put(secondaryCell4, typeSecondaryCell);
             }
 
         } else {
             colspan = shipSize;
             rowspan = 1;
+
+            int secondaryCell3 = (idShipPosition - 10);
+            int secondaryCell4 = (idShipPosition + (shipSize * 10));
+
             for(int j = 0; j < shipSize; j++ ) {
-                needCells.put(idShipPosition + (j * 10), "with-ship");
 
-                if (checkKeyOnMap(idShipPosition + (j * 10))) {
-                    fullLoop = false;
-                    break;
-                } else {
-                    fullLoop = true;
+                int mainCell = idShipPosition + (j * 10);
+                int secondaryCell1 = (idShipPosition + (j * 10) - 1);
+                int secondaryCell2 = (idShipPosition + (j * 10) + 1);
+
+                if (((checkKeyOnMap(mainCell, "all"))
+                        || (checkKeyOnMap(secondaryCell1, "with-ship") && secondaryCell1 % 10 != 9)
+                        || (checkKeyOnMap(secondaryCell2, "with-ship") && secondaryCell2 % 10 != 0)
+                        || (checkKeyOnMap(secondaryCell3, "with-ship"))
+                        || (checkKeyOnMap(secondaryCell4, "with-ship")))
+                        && type == "add") {
+                    changeCells.clear();
+                    break outerloop;
                 }
 
-                if ((idShipPosition + (j * 10) - 1) >= 0 && (idShipPosition + (j * 10) - 1) % 10 != 9) {
-                    needCells.put(idShipPosition + (j * 10) - 1, "reserved");
+                changeCells.put(mainCell, typeMainCell);
+
+                if (secondaryCell1 >= 0 && secondaryCell1 % 10 != 9) {
+                    changeCells.put(secondaryCell1, typeSecondaryCell);
                 }
-                if((idShipPosition + (j * 10) + 1) < boardColumns*boardRows && (idShipPosition + (j * 10) + 1) % 10 != 0) {
-                    needCells.put(idShipPosition + (j * 10) + 1, "reserved");
+                if(secondaryCell2 < boardColumns*boardRows && secondaryCell2 % 10 != 0) {
+                    changeCells.put(secondaryCell2, typeSecondaryCell);
                 }
             }
 
-            if ((idShipPosition - 10) >= 0) {
-                needCells.put(idShipPosition - 10, "reserved");
+            if (secondaryCell3 >= 0) {
+                changeCells.put(secondaryCell3, typeSecondaryCell);
             }
-            if ((idShipPosition + (shipSize * 10)) < boardColumns*boardRows) {
-                needCells.put(idShipPosition + (shipSize * 10), "reserved");
+            if (secondaryCell4 < boardColumns*boardRows) {
+                changeCells.put(secondaryCell4, typeSecondaryCell);
             }
         }
 
-        if (fullLoop) {
-            ImageView imageView;
-            if (ship.getShipImageView() != null) {
-                imageView = ship.getShipImageView();
-            } else {
-                imageView = ship.setShipImageView();
-            }
-            System.out.println(imageView + " | " + shipStartPositionX + " | " + shipStartPositionY);
-            imageView.getProperties().put("gridpane-column", shipStartPositionX);
-            imageView.getProperties().put("gridpane-row", shipStartPositionY);
-            System.out.println(imageView.getProperties().toString());
-            board.add(imageView, shipStartPositionX, shipStartPositionY, colspan, rowspan);
-
-            ship.setActualXPosition(shipStartPositionX);
-            ship.setActualYPosition(shipStartPositionY);
-            fleetMap.put(imageView, ship);
-            System.out.println(imageView.getProperties());
-            reservedCalls.putAll(needCells);
-        }
-
-        return fullLoop;
+        return changeCells;
     }
 
+
+
     public void drawContentBoard() {
-        Iterator iterator = reservedCalls.entrySet().iterator();
+        for (int i = 0; i < getBoardRows() * getBoardColumns(); i++){
+            putStyle(i,"cell");
+            putGameStatus(i, "empty");
+        }
+
+        Iterator iterator = reservedCells.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry pair = (Map.Entry)iterator.next();
             putStyle((Integer)pair.getKey(), pair.getValue().toString());
             putGameStatus((Integer)pair.getKey(), pair.getValue().toString());
             // iterator.remove();
         }
+
+        System.out.println(getReservedCalls().toString());
     }
 
     public HashMap<ImageView, Ship> getFleetMap() {
@@ -212,7 +328,19 @@ public class Board {
     }
 
     public HashMap<Integer, String> getReservedCalls() {
-        return reservedCalls;
+        return reservedCells;
+    }
+
+    public int getBoardColumns() {
+        return boardColumns;
+    }
+
+    public int getBoardRows() {
+        return boardRows;
+    }
+
+    public GridPane getBoard() {
+        return board;
     }
 
 }

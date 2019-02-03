@@ -5,14 +5,15 @@ import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.CacheHint;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Control;
+import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseDragEvent;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.input.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
@@ -28,8 +29,11 @@ import static java.lang.Math.abs;
 
 public class Battleship extends Application {
 
-    private double newX, newY, oldX, oldY, offX, offY;
-    // private String offX, offY;
+    private Board bigBoard;
+    private final DataFormat buttonFormat = new DataFormat("MyButton");
+    private Node draggingButton;
+
+
     public static void main(String[] args) {
         launch(args);
     }
@@ -37,253 +41,193 @@ public class Battleship extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        HBox hBox = new HBox(25);
-        hBox.setAlignment(Pos.CENTER);
+        try {
 
-        int lengthSquare = 30;
-        int boardSize = 10;
+            HBox hBox = new HBox(25);
+            hBox.setAlignment(Pos.CENTER);
 
-        Board bigBoard = new Board(boardSize,boardSize, lengthSquare, "big-board");
-        GridPane bigPane = bigBoard.doBoard();
-        bigPane.setId("bigPane");
+            int lengthSquare = 30;
+            int boardSize = 10;
 
-        int ships = 5;
-        RandomValues generator = new RandomValues();
-        int shipMaxPositionX;
-        int shipMaxPositionY;
-        Map<Integer, Ship> playerFleet = new HashMap<>();
+            bigBoard = new Board(boardSize, boardSize, lengthSquare, "big-board");
+            GridPane bigPane = bigBoard.doBoard();
+            bigPane.setId("bigPane");
 
-        for (int i = ships; i > 0; i--) {
-            char shipRandomOrientation = generator.randomOrientation();
+            int ships = 5;
+            RandomValues generator = new RandomValues();
+            int shipMaxPositionX;
+            int shipMaxPositionY;
+            Map<Integer, Ship> playerFleet = new HashMap<>();
 
-            if (shipRandomOrientation == 'v') {
-                shipMaxPositionX = boardSize;
-                shipMaxPositionY = boardSize - i;
-            } else {
-                shipMaxPositionX = boardSize - i;
-                shipMaxPositionY = boardSize;
+            for (int i = ships; i > 0; i--) {
+                char shipRandomOrientation = generator.randomOrientation();
+
+                if (shipRandomOrientation == 'v') {
+                    shipMaxPositionX = boardSize;
+                    shipMaxPositionY = boardSize - i;
+                } else {
+                    shipMaxPositionX = boardSize - i;
+                    shipMaxPositionY = boardSize;
+                }
+
+                Ship ship = new Ship(i, lengthSquare, shipRandomOrientation);
+
+                int shipPositionX = generator.randomValue(shipMaxPositionX);
+                int shipPositionY = generator.randomValue(shipMaxPositionY);
+
+                boolean checkCompletePut = bigBoard.putIntoBoard(ship, shipPositionY, shipPositionX, "add");
+                if (checkCompletePut != true) {
+                    i++;
+                }
             }
 
-            Ship ship = new Ship(i,lengthSquare,shipRandomOrientation);
+            bigBoard.drawContentBoard();
 
-            int shipPositionX = generator.randomValue(shipMaxPositionX);
-            int shipPositionY = generator.randomValue(shipMaxPositionY);
+            for( Node child: bigPane.getChildrenUnmodifiable()) {
 
-            boolean checkCompletePut = bigBoard.putIntoBoard(ship,shipPositionY,shipPositionX);
-            if (checkCompletePut != true) {
-                i++;
-            }
-        }
+                if( child instanceof ImageView) {
+                    ImageView imageView = (ImageView) child;
+                    dragButton(imageView);
+                    clickShip(imageView);
+                }
 
-        bigBoard.drawContentBoard();
-
-        for( Node child: bigPane.getChildrenUnmodifiable()) {
-            if( child instanceof ImageView) {
-                ImageView imageView = (ImageView) child;
-                oldX = imageView.getX();
-                oldY = imageView.getY();
-
-                HashMap<ImageView, Ship> tmpMap = bigBoard.getFleetMap();
-                Ship thisShip = (Ship) tmpMap.get(imageView);
-
-                imageView.addEventHandler(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() {
-
-                    @Override
-                    public void handle(MouseEvent event) {
-                        imageView.setMouseTransparent(true);
-                        System.out.println("Event on Source: mouse pressed");
-                        event.setDragDetect(true);
-                        // oldX = imageView.getX() - event.getX();
-                        // oldY = imageView.getY() - event.getY();
-                        offX = imageView.getX() - event.getX();
-                        offY = imageView.getY() - event.getY();
-                        /*
-                        if (event.getButton() == MouseButton.SECONDARY) {
-                            ship.setShipOrientation('h');
-                            bigPane.getProperties().put("gridpane-column-span", 5);
-                            bigPane.getProperties().put("gridpane-row-span", 1);
-                            bigPane.setImage(ship.getImageClassShip());
-                            System.out.println("Right button clicked");
-                        }
-                        */
-                        System.out.println(oldX + " : " + oldY + " : ");
-                    }
-                });
-
-                imageView.addEventHandler(MouseEvent.MOUSE_RELEASED, new EventHandler<MouseEvent>() {
-
-                            @Override
-                            public void handle(MouseEvent event) {
-                                imageView.setMouseTransparent(false);
-                                System.out.println("Event on Source: mouse released");
-                                newX = oldX;
-                                newY = oldY;
-                                int actualPostionX = thisShip.getActualXPosition();
-                                int actualPostionY = thisShip.getActualYPosition();
-                                int positionX = (int) (actualPostionX + (oldX / 30));
-                                int positionY = (int) (actualPostionY + (oldY / 30));
-                                boolean checkCompletePut = bigBoard.putIntoBoard(thisShip, positionY, positionX);
-                                System.out.println(positionX + " : " + positionY + " : " + checkCompletePut);
-                            }
-                });
-
-                imageView.addEventHandler(MouseEvent.MOUSE_DRAGGED, new EventHandler<MouseEvent>() {
-
-                            @Override
-                            public void handle(MouseEvent event) {
-                                System.out.println("Event on Source: mouse dragged");
-                                event.setDragDetect(false);
-                                newX = event.getX() + offX - (0.5 * lengthSquare);
-                                newY = event.getY() + offY - (0.5 * lengthSquare);
-                                double x = Math.min(oldX, newX);
-                                double y = Math.min(oldY, newY);
-                                double roundNewX = Math.round(x/lengthSquare) * lengthSquare;
-                                double roundNewY = Math.round(y/lengthSquare) * lengthSquare;
-                                imageView.setX(roundNewX);
-                                imageView.setY(roundNewY);
-                                bigPane.setBorder(new Border(new BorderStroke(Color.BLACK,
-                                        BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
-                                oldX = newX;
-                                oldY = newY;
-                                System.out.println(roundNewX + " : " + roundNewY);
-                                bigPane.toFront();
-                            }
-                });
-
-                imageView.addEventHandler(MouseEvent.DRAG_DETECTED, new EventHandler<MouseEvent>() {
-
-                            @Override
-                            public void handle(MouseEvent event) {
-                                imageView.startFullDrag();
-                                System.out.println("Event on Source: drag detected");
-                            }
-                });
-
-      /*         imageView.addEventHandler(MouseDragEvent.MOUSE_DRAG_RELEASED, new EventHandler<MouseDragEvent>() {
-                    @Override
-                    public void handle(MouseDragEvent event) {
-                        System.out.println("Mouse Drag Released");
-                        newX = oldX + event.getX();
-                        newY = oldY + event.getY();
-                        imageView.setX(newX);
-                        imageView.setY(newY);
-                        oldX = newX;
-                        oldY = newY;
-                        System.out.println(newX + " : " + newY);
-                        bigPane.toFront();
-                    }
-                }); */
-            }
-        }
-
-        HashMap<Integer, String> tmpMap = bigBoard.getReservedCalls();
-        Iterator iterator = tmpMap.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry pair = (Map.Entry) iterator.next();
-            System.out.println(pair.getKey() + " = " + pair.getValue());
-            Integer tmpKey = (Integer) pair.getKey();
-            String tmpValue = (String) pair.getValue();
-            // iterator.remove();
-
-            if (tmpValue == "with-ship") {
-                bigPane.getChildren().get(tmpKey).addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
-
-                    @Override
-                    public void handle(MouseEvent event) {
-                        System.out.println("Click " + tmpKey);
-                        event.consume();
-                    }
-                });
+                if( child instanceof StackPane) {
+                    StackPane pane = (StackPane) child;
+                    addDropHandling(pane);
+                }
             }
 
-        }
+            Board smallBoard = new Board(10, 10, 20, "smaller-board");
+            GridPane smallPane = smallBoard.doBoard();
 
-        Board smallBoard = new Board(10,10, 20, "smaller-board");
-        GridPane smallPane = smallBoard.doBoard();
+            Pane leftPlane = new Pane();
+            leftPlane.getChildren().addAll(bigPane);
+            Pane rightPlane = new Pane();
+            rightPlane.getChildren().add(smallPane);
+            hBox.getChildren().addAll(leftPlane, rightPlane);
 
-        Pane leftPlane = new Pane();
-        leftPlane.getChildren().addAll(bigPane);
-        Pane rightPlane = new Pane();
-        rightPlane.getChildren().add(smallPane);
-        hBox.getChildren().addAll(leftPlane, rightPlane);
+            LinearGradient backgroundGradient = new LinearGradient(0.5, 0.5, 1, 1, true, CycleMethod.NO_CYCLE, new Stop(0, Color.AQUA), new Stop(1, Color.BLUE));
+            BackgroundFill backgroundFill = new BackgroundFill(backgroundGradient, CornerRadii.EMPTY, new Insets(0, 0, 0, 0));
+            Background background = new Background(backgroundFill);
 
-        LinearGradient backgroundGradient = new LinearGradient(0.5,0.5,1,1,true, CycleMethod.NO_CYCLE,new Stop(0,Color.AQUA),new Stop(1,Color.BLUE));
-        BackgroundFill backgroundFill = new BackgroundFill(backgroundGradient, CornerRadii.EMPTY, new Insets(0,0,0,0));
-        Background background = new Background(backgroundFill);
+            Scene scene = new Scene(hBox, 900, 600, Color.BLACK);
+            scene.getStylesheets().add("battleship-styles.css");
+            hBox.setBackground(background);
+            hBox.setMinSize(900, 600);
 
-        Scene scene = new Scene(hBox, 900, 600, Color.BLACK);
-        scene.getStylesheets().add("battleship-styles.css");
-        hBox.setBackground(background);
-        hBox.setMinSize(900,600);
+            primaryStage.setTitle("Battleship");
+            primaryStage.setScene(scene);
+            primaryStage.setHeight(600);
+            primaryStage.setWidth(900);
+            primaryStage.setResizable(false);
+            primaryStage.show();
+        } catch(Exception e) {
+            e.printStackTrace();
+        } }
 
-        primaryStage.setTitle("Battleship");
-        primaryStage.setScene(scene);
-        primaryStage.setHeight(600);
-        primaryStage.setWidth(900);
-        primaryStage.setResizable(false);
-        primaryStage.show();
-
-        /*
-        //imageView.getProperties().put("gridpane-column", 4);
-
-        EventHandler<MouseEvent> mousePressed = e -> {
-            ship.getShipImageView().setMouseTransparent(true);
-            System.out.println("Event on Source: mouse pressed");
-            e.setDragDetect(true);
-            offX = ship.getShipImageView().getProperties().get("gridpane-column").toString();
-            offY = ship.getShipImageView().getProperties().get("gridpane-row").toString();
-            /*
-            offSize = ship.getShipSize();
+    private void clickShip(ImageView shipImageView) {
+        shipImageView.setOnMousePressed(e -> {
             if (e.getButton() == MouseButton.SECONDARY) {
-                ship.setShipOrientation('h');
-                bigPane.getProperties().put("gridpane-column-span", 5);
-                bigPane.getProperties().put("gridpane-row-span", 1);
-                bigPane.setImage(ship.getImageClassShip());
-                System.out.println("Right button clicked");
+                HashMap<ImageView, Ship> tmpMap = bigBoard.getFleetMap();
+                Ship thisShip = (Ship) tmpMap.get(shipImageView);
+
+                char thisShipOrientation = thisShip.getShipOrientation();
+                int shipStartPositionX = thisShip.getActualXPosition();
+                int shipStartPositionY = thisShip.getActualYPosition();
+
+                boolean checkCompletePut = bigBoard.putIntoBoard(thisShip, 0, 0, "remove");
+                bigBoard.getBoard().getChildren().remove(shipImageView);
+
+                if (thisShipOrientation == 'v') {
+                    thisShip.setShipOrientation('h');
+                } else {
+                    thisShip.setShipOrientation('v');
+                }
+
+                checkCompletePut = false;
+                boolean changeVector = false;
+                for (int i = 0; !checkCompletePut; i++) {
+                    System.out.println(i);
+                   if (thisShipOrientation == 'v' || (thisShipOrientation == 'h' && changeVector == true)) {
+                       checkCompletePut = bigBoard.putIntoBoard(thisShip, shipStartPositionY, shipStartPositionX + i, "add");
+                       if ((i == bigBoard.getBoardRows() - 1) && !changeVector) {
+                           changeVector = true;
+                           i = 0;
+                       } else {
+                           break;
+                       }
+                   } else if (thisShipOrientation == 'h' || (thisShipOrientation == 'v' && changeVector == true)) {
+                       checkCompletePut = bigBoard.putIntoBoard(thisShip, shipStartPositionY + i, shipStartPositionX, "add");
+                       if ((i == bigBoard.getBoardColumns() - 1) && !changeVector) {
+                           changeVector = true;
+                           i = 0;
+                       } else {
+                           break;
+                       }
+                   }
+                }
+
+                while (!checkCompletePut) {
+                    RandomValues generator = new RandomValues();
+                    int newShipStartPositionX = generator.randomValue(bigBoard.getBoardColumns());
+                    int newShipStartPositionY = generator.randomValue(bigBoard.getBoardRows());
+                    checkCompletePut = bigBoard.putIntoBoard(thisShip, newShipStartPositionY, newShipStartPositionX, "add");
+                    System.out.println(checkCompletePut + " | " + newShipStartPositionX + " | " + newShipStartPositionY);
+                }
             }
-            */ /*
-            System.out.println(offX + " : " + offY + " : " + offSize);
-        };
-        EventHandler<MouseEvent> mouseReleased = e -> {
-            ship.getShipImageView().setMouseTransparent(false);
-            System.out.println("Event on Source: mouse released");
-        };
-        EventHandler<MouseEvent> mouseDragged = e -> {
-            System.out.println("Event on Source: mouse dragged");
-            e.setDragDetect(false);
-            System.out.println("Mouse Drag Released");
-            newX = e.getX();
-            newY = e.getY();
-            ship.getShipImageView().setX(newX);
-            ship.getShipImageView().setY(newY);
-            oldX = newX;
-            oldY = newY;
-            System.out.println(newX + " : " + newY);
-            bigPane.toFront();
-        };
-        EventHandler<MouseEvent> dragDetected = e -> {
-            ship.getShipImageView().startFullDrag();
-            System.out.println("Event on Source: drag detected");
-        };
-        EventHandler<MouseDragEvent> mouseDragReleased = e -> {
-            System.out.println("Mouse Drag Released");
-            newX = e.getX();
-            newY = e.getY();
-            ship.getShipImageView().setX(newX);
-            ship.getShipImageView().setY(newY);
-            oldX = newX;
-            oldY = newY;
-            System.out.println(newX + " : " + newY);
-            bigPane.toFront();
-        };
-
-            ship.getShipImageView().addEventHandler(MouseEvent.MOUSE_PRESSED,mousePressed);
-            ship.getShipImageView().addEventHandler(MouseEvent.MOUSE_RELEASED,mouseReleased);
-            ship.getShipImageView().addEventHandler(MouseEvent.MOUSE_DRAGGED,mouseDragged);
-            ship.getShipImageView().addEventHandler(MouseEvent.DRAG_DETECTED,dragDetected);
-            ship.getShipImageView().addEventHandler(MouseDragEvent.MOUSE_DRAG_RELEASED,mouseDragReleased);
-
-            */
+        });
     }
 
+
+        private void dragButton(ImageView b) {
+        b.setOnDragDetected(e -> {
+            Dragboard db = b.startDragAndDrop(TransferMode.MOVE);
+            db.setDragView(b.snapshot(null, null));
+            ClipboardContent cc = new ClipboardContent();
+            cc.put(buttonFormat, " ");
+            db.setContent(cc);
+            draggingButton = b;
+
+            HashMap<ImageView, Ship> tmpMap = bigBoard.getFleetMap();
+            Ship thisShip = (Ship) tmpMap.get(draggingButton);
+
+            boolean checkCompletePut = bigBoard.putIntoBoard(thisShip, 0, 0, "remove");
+        });
+    }
+
+    private void addDropHandling(StackPane pane) {
+        pane.setOnDragOver(e -> {
+            Dragboard db = e.getDragboard();
+            if (db.hasContent(buttonFormat) && draggingButton != null) {
+                e.acceptTransferModes(TransferMode.MOVE);
+            }
+        });
+
+        pane.setOnDragDropped(e -> {
+            Dragboard db = e.getDragboard();
+
+            if (db.hasContent(buttonFormat)) {
+                ((Pane)draggingButton.getParent()).getChildren().remove(draggingButton);
+
+                Integer idPane = Integer.parseInt(pane.getId());
+
+                int shipStartPositionX = (int) Math.floor(idPane / 10);
+                int shipStartPositionY = (int) idPane % 10;
+
+                HashMap<ImageView, Ship> tmpMap = bigBoard.getFleetMap();
+                Ship thisShip = (Ship) tmpMap.get(draggingButton);
+
+                boolean checkCompletePut = bigBoard.putIntoBoard(thisShip, shipStartPositionY, shipStartPositionX, "move");
+                System.out.println(bigBoard.getReservedCalls().toString());
+                bigBoard.drawContentBoard();
+                if (checkCompletePut) {
+                    e.setDropCompleted(true);
+                } else {
+                    e.setDropCompleted(false);
+                }
+                draggingButton = null;
+            }
+        });
+
+    }
 }
