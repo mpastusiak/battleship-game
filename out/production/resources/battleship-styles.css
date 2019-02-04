@@ -45,5 +45,18 @@
 
 .label {
     -fx-font-size: 11;
+    -fx-font-color: black;
     -fx-alignment: center;
+}
+
+.neutral-information {
+    -fx-font-size: 15;
+    -fx-text-fill: black;
+    -fx-font-weight: normal;
+}
+
+.error-information {
+    -fx-font-size: 15;
+    -fx-text-fill: RED;
+    -fx-font-weight: bold;
 }

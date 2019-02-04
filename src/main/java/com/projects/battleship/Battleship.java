@@ -41,6 +41,7 @@ public class Battleship extends Application {
     private Node draggingButton;
     private RandomValues generator = new RandomValues();
     private boolean iDoSomething = false;
+    private Label textInformation = new Label();
 
     public static void main(String[] args) {
         launch(args);
@@ -55,6 +56,7 @@ public class Battleship extends Application {
             hBox.setAlignment(Pos.CENTER);
 
             GridPane leftPlane = new GridPane();
+
             Label optionsLabel = new Label();
             optionsLabel.setText("Options");
             leftPlane.add(optionsLabel,0,0,3,1);
@@ -71,6 +73,7 @@ public class Battleship extends Application {
 
                 TextField textFieldShip = new TextField();
                 textFieldShip.setText("1");
+                textFieldShip.setEditable(false);
                 textFieldShips.add(textFieldShip);
                 leftPlane.add(textFieldShips.getLast(), 1,(i*2),1,1);
 
@@ -83,8 +86,11 @@ public class Battleship extends Application {
             Button buttonRefresh = new Button();
             buttonRefresh.setText("Confirm");
             clickRefresh(buttonRefresh);
-            leftPlane.add(buttonRefresh, 0, 11, 3, 2);
+            leftPlane.add(buttonRefresh, 0, 11, 3, 1);
 
+            textInformation.setText("We can start, when you are ready!");
+            textInformation.getStyleClass().add("neutral-information");
+            leftPlane.add(textInformation, 0, 12,3,1);
 
             int lengthSquare = 30;
             int boardSize = 10;
@@ -134,7 +140,7 @@ public class Battleship extends Application {
             Pane centerPlane = new Pane();
             centerPlane.getChildren().addAll(bigPane);
             Pane rightPlane = new Pane();
-            rightPlane.getChildren().add(smallPane);
+            rightPlane.getChildren().addAll(smallPane);
             hBox.getChildren().addAll(leftPlane, centerPlane, rightPlane);
 
             LinearGradient backgroundGradient = new LinearGradient(0.5, 0.5, 1, 1, true, CycleMethod.NO_CYCLE, new Stop(0, Color.AQUA), new Stop(1, Color.BLUE));
@@ -176,7 +182,7 @@ public class Battleship extends Application {
                 occupiedSpace += Integer.valueOf(textFieldShips.get(i).getText()) * (i + 1);
             }
             double occupiedSpacePercent = occupiedSpace / (bigBoard.getBoardRows() * bigBoard.getBoardColumns());
-            if (occupiedSpacePercent <= 0.35) {
+            if (occupiedSpacePercent <= 0.30) {
                 return true;
             } else {
                 return false;
@@ -224,6 +230,9 @@ public class Battleship extends Application {
                             break outerloop;
                         }
                     }
+                    textInformation.setText("We can start, when you are ready!");
+                    textInformation.getStyleClass().clear();
+                    textInformation.getStyleClass().add("neutral-information");
                 } else if (button.getText() == "+" && checkFreeSpace(shipSize)) {
                     boolean isAdd = false;
                     long startTime = System.nanoTime();
@@ -235,21 +244,33 @@ public class Battleship extends Application {
                         if (isAdd) {
                             thisTextField.setText(Integer.toString(getActualValue + 1));
                             bigBoard.putFleetMap(randomShip.getShipImageView(), randomShip);
+                            textInformation.setText("We can start, when you are ready!");
+                            textInformation.getStyleClass().clear();
+                            textInformation.getStyleClass().add("neutral-information");
                             iDoSomething = false;
                         }
                         long endTime = System.nanoTime();
                         if (endTime - startTime > Math.pow(10, 9) * 2) {
-                            System.out.println("I can't add this ship! Maybe you can change ships positions?");
+                            textInformation.setText("I can't add this ship! Maybe you can change ships positions?");
+                            textInformation.getStyleClass().clear();
+                            textInformation.getStyleClass().add("error-information");
                             iDoSomething = false;
                             break;
                         }
                     }
+                } else if (button.getText() == "+" && !checkFreeSpace(shipSize)) {
+                    textInformation.setText("You have enough ships on this board!");
+                    textInformation.getStyleClass().clear();
+                    textInformation.getStyleClass().add("error-information");
+                    iDoSomething = false;
                 } else {
-                    System.out.println("You have to enough ships on this board!");
+                    textInformation.setText("You don't have this ship yet!");
+                    textInformation.getStyleClass().clear();
+                    textInformation.getStyleClass().add("error-information");
                     iDoSomething = false;
                 }
             } else {
-                System.out.println("I do something!");
+                textInformation.setText("I do something!");
             }
         });
     }
