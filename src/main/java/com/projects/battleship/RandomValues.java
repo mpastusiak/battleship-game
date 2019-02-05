@@ -1,5 +1,7 @@
 package com.projects.battleship;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Random;
 
 public class RandomValues {
@@ -16,6 +18,22 @@ public class RandomValues {
             return 'h';
         }
     }
+
+    public ArrayList<Integer> randomCellsList(Board board) {
+        int boardColumns = board.getBoardColumns();
+        int boardRows = board.getBoardRows();
+        int maxValue = boardColumns * boardRows;
+
+        ArrayList<Integer> randomList = new ArrayList<Integer>(maxValue);
+        for(int i = 0; i < maxValue; i++) {
+            randomList.add(i);
+        }
+
+        Collections.shuffle(randomList);
+        return randomList;
+
+    }
+
 
     public Ship randomShip(Board board, int shipSize){
         char shipRandomOrientation = randomOrientation();

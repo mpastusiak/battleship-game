@@ -25,10 +25,7 @@ import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.stage.Stage;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
 import static java.lang.Math.abs;
@@ -182,7 +179,7 @@ public class Battleship extends Application {
                 occupiedSpace += Integer.valueOf(textFieldShips.get(i).getText()) * (i + 1);
             }
             double occupiedSpacePercent = occupiedSpace / (bigBoard.getBoardRows() * bigBoard.getBoardColumns());
-            if (occupiedSpacePercent <= 0.30) {
+            if (occupiedSpacePercent <= 0.35) {
                 return true;
             } else {
                 return false;
@@ -235,9 +232,13 @@ public class Battleship extends Application {
                     textInformation.getStyleClass().add("neutral-information");
                 } else if (button.getText() == "+" && checkFreeSpace(shipSize)) {
                     boolean isAdd = false;
-                    long startTime = System.nanoTime();
-                    while (!isAdd) {
-                        Ship randomShip = generator.randomShip(bigBoard, shipSize);
+                    Ship randomShip = generator.randomShip(bigBoard, shipSize);
+                    char firstRandomShipOrientation = randomShip.getShipOrientation();
+                    ArrayList<Integer> randomCellsList = generator.randomCellsList(bigBoard);
+
+                    for(int i = 0; i < randomCellsList.size(); i++) {
+                        randomShip.setActualXPosition((int) Math.floor(randomCellsList.get(i) / 10));
+                        randomShip.setActualYPosition((int) randomCellsList.get(i) % 10);
                         isAdd = bigBoard.putIntoBoard(randomShip, randomShip.getActualYPosition(), randomShip.getActualXPosition(), "add");
                         dragButton(randomShip.getShipImageView());
                         clickShip(randomShip.getShipImageView());
@@ -248,15 +249,17 @@ public class Battleship extends Application {
                             textInformation.getStyleClass().clear();
                             textInformation.getStyleClass().add("neutral-information");
                             iDoSomething = false;
-                        }
-                        long endTime = System.nanoTime();
-                        if (endTime - startTime > Math.pow(10, 9) * 2) {
-                            textInformation.setText("I can't add this ship! Maybe you can change ships positions?");
-                            textInformation.getStyleClass().clear();
-                            textInformation.getStyleClass().add("error-information");
-                            iDoSomething = false;
                             break;
+                        } else if ((i == randomCellsList.size() - 1) && (randomShip.getShipOrientation() == firstRandomShipOrientation)) {
+                            randomShip.changeShipOrientation();
+                            i = 0;
                         }
+                    }
+                    if (!isAdd) {
+                        textInformation.setText("I can't add this ship! Maybe you can change ships positions?");
+                        textInformation.getStyleClass().clear();
+                        textInformation.getStyleClass().add("error-information");
+                        iDoSomething = false;
                     }
                 } else if (button.getText() == "+" && !checkFreeSpace(shipSize)) {
                     textInformation.setText("You have enough ships on this board!");
@@ -288,11 +291,7 @@ public class Battleship extends Application {
                 boolean checkCompletePut = bigBoard.putIntoBoard(thisShip, 0, 0, "remove");
                 bigBoard.getBoard().getChildren().remove(shipImageView);
 
-                if (thisShipOrientation == 'v') {
-                    thisShip.setShipOrientation('h');
-                } else {
-                    thisShip.setShipOrientation('v');
-                }
+                thisShip.changeShipOrientation();
 
                 checkCompletePut = false;
                 boolean changeVector = false;
@@ -316,11 +315,29 @@ public class Battleship extends Application {
                    }
                 }
 
-                while (!checkCompletePut) {
-                    RandomValues generator = new RandomValues();
-                    int newShipStartPositionX = generator.randomValue(bigBoard.getBoardColumns());
-                    int newShipStartPositionY = generator.randomValue(bigBoard.getBoardRows());
-                    checkCompletePut = bigBoard.putIntoBoard(thisShip, newShipStartPositionY, newShipStartPositionX, "add");
+                if (!checkCompletePut) {
+                    ArrayList<Integer> randomCellsList = generator.randomCellsList(bigBoard);
+
+                    for (int i = 0; i < randomCellsList.size(); i++) {
+                        int newShipStartPositionX = (int) Math.floor(randomCellsList.get(i) / 10);
+                        int newShipStartPositionY = (int) randomCellsList.get(i) % 10;
+                        checkCompletePut = bigBoard.putIntoBoard(thisShip, newShipStartPositionY, newShipStartPositionX, "add");
+                        dragButton(thisShip.getShipImageView());
+                        clickShip(thisShip.getShipImageView());
+                        if (checkCompletePut) {
+                            textInformation.setText("We can start, when you are ready!");
+                            textInformation.getStyleClass().clear();
+                            textInformation.getStyleClass().add("neutral-information");
+                            iDoSomething = false;
+                            break;
+                        }
+                    }
+                }
+                if (!checkCompletePut) {
+                    textInformation.setText("I can't do this! Maybe you can change ships positions?");
+                    textInformation.getStyleClass().clear();
+                    textInformation.getStyleClass().add("error-information");
+                    iDoSomething = false;
                 }
             }
         });

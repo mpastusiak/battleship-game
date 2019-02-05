@@ -140,7 +140,7 @@ public class Board {
         HashMap<Integer, String> addCellsMap = new HashMap<>();
         HashMap<Integer, String> removeCellsMap = new HashMap<>();
 
-        if(type == "add" || type == "move") {
+        if(type == "add" || type == "move" || type == "onlyCheck") {
             addCellsMap = changePanesOnBoard(ship, shipNewStartPositionY, shipNewStartPositionX, newShipOrientation, "add");
         } else if (type == "remove") {
             removeCellsMap = changePanesOnBoard(ship, shipOldStartPositionY, shipOldStartPositionX, newShipOrientation, "remove");
@@ -168,7 +168,7 @@ public class Board {
         }
 
         ImageView imageView;
-        if (addCellsMap.size() > 0 && areInBoardRange) {
+        if (addCellsMap.size() > 0 && areInBoardRange && type != "onlyCheck") {
             if (ship.getShipImageView() != null) {
                 imageView = ship.getShipImageView();
             } else {
@@ -192,6 +192,8 @@ public class Board {
             putIntoBoard(ship,shipOldStartPositionY,shipOldStartPositionX,"add");
         } else if (type == "remove") {
             reservedCells.keySet().removeAll(removeCellsMap.keySet());
+        } else if (type == "onlyCheck") {
+            fullLoop = true;
         }
 
         drawContentBoard();

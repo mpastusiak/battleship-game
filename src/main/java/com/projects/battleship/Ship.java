@@ -71,16 +71,18 @@ public class Ship {
         getShipImageView().getProperties().put("gridpane-row", positionY);
     }
 
-    public void setShipOrientation(char shipOrientation) {
-        this.shipOrientation = shipOrientation;
-        if (shipOrientation == 'v') {
+    public void changeShipOrientation() {
+        char oldShipOrientation = getShipOrientation();
+        if (oldShipOrientation == 'h') {
             this.urlImageShip = "ship" + shipSize + "v.png";
             this.shipWidth = fitHeight;
             this.shipHeight = fitHeight * shipSize;
+            this.shipOrientation = 'v';
         } else {
             this.urlImageShip = "ship" + shipSize + ".png";
             this.shipWidth = fitHeight * shipSize;
             this.shipHeight = fitHeight;
+            this.shipOrientation = 'h';
         }
         this.imageClassShip = new Image(urlImageShip, shipWidth, shipHeight, false, true);
         getShipImageView().setImage(this.imageClassShip);
