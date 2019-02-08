@@ -167,6 +167,10 @@ public class Board {
             tmpKey = entry.getKey();
         }
 
+        if (shipNewStartPositionX >= getBoardColumns() || shipNewStartPositionY >= getBoardRows()) {
+            areInBoardRange = false;
+        }
+
         ImageView imageView;
         if (addCellsMap.size() > 0 && areInBoardRange && type != "onlyCheck") {
             if (ship.getShipImageView() != null) {
@@ -174,6 +178,7 @@ public class Board {
             } else {
                 imageView = ship.setShipImageView();
             }
+
             imageView.getProperties().put("gridpane-column", shipNewStartPositionX);
             imageView.getProperties().put("gridpane-row", shipNewStartPositionY);
             imageView.getProperties().put("gridpane-column-span", colspan);
@@ -188,11 +193,14 @@ public class Board {
             reservedCells.putAll(addCellsMap);
 
             fullLoop = true;
+
         } else if (type == "move") {
             putIntoBoard(ship,shipOldStartPositionY,shipOldStartPositionX,"add");
+
         } else if (type == "remove") {
             reservedCells.keySet().removeAll(removeCellsMap.keySet());
-        } else if (type == "onlyCheck") {
+
+        } else if (addCellsMap.size() > 0 && areInBoardRange && type == "onlyCheck") {
             fullLoop = true;
         }
 

@@ -1,21 +1,13 @@
 package com.projects.battleship;
 
-import javafx.scene.Group;
-import javafx.scene.text.*;
 import javafx.application.Application;
-import javafx.event.Event;
-import javafx.event.EventHandler;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.CacheHint;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.ColorAdjust;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.*;
 import javafx.scene.layout.*;
@@ -26,19 +18,33 @@ import javafx.scene.paint.Stop;
 import javafx.stage.Stage;
 
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 
 import static java.lang.Math.abs;
 
 public class Battleship extends Application {
 
-    private Board bigBoard;
+    private HBox hBox = new HBox(25);
+    private GridPane leftPlane = new GridPane();
+    private Pane centerPlane = new Pane();
+    private Pane rightPlane = new Pane();
+
+    int lengthHumanSquare = 30;
+    int lengthComputerSquare = 30;
+    int boardSize = 10;
+
+    private Board humanBoard;
+    private Pane humanPane;
+
+    private Board computerBoard;
+    private Pane computerPane;
+
     private LinkedList<TextField> textFieldShips = new LinkedList<>();
     private final DataFormat buttonFormat = new DataFormat("MyButton");
     private Node draggingButton;
     private RandomValues generator = new RandomValues();
     private boolean iDoSomething = false;
     private Label textInformation = new Label();
+    private String gameStage = "configuration";
 
     public static void main(String[] args) {
         launch(args);
@@ -49,10 +55,50 @@ public class Battleship extends Application {
     public void start(Stage primaryStage) throws Exception {
         try {
 
-            HBox hBox = new HBox(25);
-            hBox.setAlignment(Pos.CENTER);
+            if (gameStage == "configuration") {
+                setConfigurationStage();
+            } else if (gameStage == "game") {
+                setGameStage();
+            }
 
-            GridPane leftPlane = new GridPane();
+            centerPlane.getChildren().addAll(humanPane);
+            rightPlane.getChildren().addAll(computerPane);
+            hBox.getChildren().addAll(leftPlane, centerPlane, rightPlane);
+
+            LinearGradient backgroundGradient = new LinearGradient(0.5, 0.5, 1, 1, true, CycleMethod.NO_CYCLE, new Stop(0, Color.AQUA), new Stop(1, Color.BLUE));
+            BackgroundFill backgroundFill = new BackgroundFill(backgroundGradient, CornerRadii.EMPTY, new Insets(0, 0, 0, 0));
+            Background background = new Background(backgroundFill);
+
+            Scene scene = new Scene(hBox, 900, 600, Color.BLACK);
+            scene.getStylesheets().add("battleship-styles.css");
+            hBox.setBackground(background);
+            hBox.setMinSize(900, 600);
+
+            primaryStage.setTitle("Battleship");
+            primaryStage.setScene(scene);
+            primaryStage.setHeight(600);
+            primaryStage.setWidth(900);
+            primaryStage.setResizable(false);
+            primaryStage.show();
+        } catch(Exception e) {
+            e.printStackTrace();
+        } }
+
+
+        private void setConfigurationStage() {
+            configurationPanel();
+            configurationHumanBoard();
+            configurationComputerBoard();
+        }
+
+
+        private void setGameStage() {
+            gameInformationPanel();
+            stopMouseEventFromConfiguration();
+        }
+
+
+        private void configurationPanel() {
 
             Label optionsLabel = new Label();
             optionsLabel.setText("Options");
@@ -89,88 +135,59 @@ public class Battleship extends Application {
             textInformation.getStyleClass().add("neutral-information");
             leftPlane.add(textInformation, 0, 12,3,1);
 
-            int lengthSquare = 30;
-            int boardSize = 10;
+        }
 
-            bigBoard = new Board(boardSize, boardSize, lengthSquare, "big-board");
-            GridPane bigPane = bigBoard.doBoard();
-            bigPane.setId("bigPane");
 
-            refreshBoard();
 
-            /*
-            RandomValues generator = new RandomValues();
-            Map<Integer, Ship> playerFleet = new HashMap<>();
+        private void configurationHumanBoard() {
+            humanBoard = new Board(boardSize, boardSize, lengthHumanSquare, "big-board");
+            humanPane = humanBoard.doBoard();
+            humanPane.setId("humanPane");
 
             for (int i = 0; i < textFieldShips.size(); i++) {
                 for (int j = 0; j < Integer.valueOf(textFieldShips.get(i).getText()); j++) {
-
-                    Ship randomShip = generator.randomShip(bigBoard, i + 1);
-
-                    boolean checkCompletePut = bigBoard.putIntoBoard(randomShip, randomShip.getActualYPosition(), randomShip.getActualXPosition(), "add");
+                    Ship randomShip = generator.randomShip(humanBoard, i + 1);
+                    boolean checkCompletePut = humanBoard.putIntoBoard(randomShip, randomShip.getActualYPosition(), randomShip.getActualXPosition(), "add");
                     if (checkCompletePut != true) {
                         j--;
                     }
                 }
             }
-            */
 
-            bigBoard.drawContentBoard();
+            humanBoard.drawContentBoard();
 
-            for( Node child: bigPane.getChildrenUnmodifiable()) {
+            if (gameStage == "configuration") {
 
-                if( child instanceof ImageView) {
-                    ImageView imageView = (ImageView) child;
-                    dragButton(imageView);
-                    clickShip(imageView);
-                }
+                for (Node child : humanPane.getChildrenUnmodifiable()) {
 
-                if( child instanceof StackPane) {
-                    StackPane pane = (StackPane) child;
-                    addDropHandling(pane);
-                }
-            }
+                    if (child instanceof ImageView) {
+                        ImageView imageView = (ImageView) child;
+                        dragButton(imageView);
+                        clickShip(imageView);
+                    }
 
-            Board smallBoard = new Board(10, 10, 20, "smaller-board");
-            GridPane smallPane = smallBoard.doBoard();
-
-            Pane centerPlane = new Pane();
-            centerPlane.getChildren().addAll(bigPane);
-            Pane rightPlane = new Pane();
-            rightPlane.getChildren().addAll(smallPane);
-            hBox.getChildren().addAll(leftPlane, centerPlane, rightPlane);
-
-            LinearGradient backgroundGradient = new LinearGradient(0.5, 0.5, 1, 1, true, CycleMethod.NO_CYCLE, new Stop(0, Color.AQUA), new Stop(1, Color.BLUE));
-            BackgroundFill backgroundFill = new BackgroundFill(backgroundGradient, CornerRadii.EMPTY, new Insets(0, 0, 0, 0));
-            Background background = new Background(backgroundFill);
-
-            Scene scene = new Scene(hBox, 900, 600, Color.BLACK);
-            scene.getStylesheets().add("battleship-styles.css");
-            hBox.setBackground(background);
-            hBox.setMinSize(900, 600);
-
-            primaryStage.setTitle("Battleship");
-            primaryStage.setScene(scene);
-            primaryStage.setHeight(600);
-            primaryStage.setWidth(900);
-            primaryStage.setResizable(false);
-            primaryStage.show();
-        } catch(Exception e) {
-            e.printStackTrace();
-        } }
-
-        private void refreshBoard() {
-            for (int i = 0; i < textFieldShips.size(); i++) {
-                for (int j = 0; j < Integer.valueOf(textFieldShips.get(i).getText()); j++) {
-
-                    Ship randomShip = generator.randomShip(bigBoard, i + 1);
-
-                    boolean checkCompletePut = bigBoard.putIntoBoard(randomShip, randomShip.getActualYPosition(), randomShip.getActualXPosition(), "add");
-                    if (checkCompletePut != true) {
-                        j--;
+                    if (child instanceof StackPane) {
+                        StackPane pane = (StackPane) child;
+                        addDropHandling(pane);
                     }
                 }
             }
+        }
+
+
+
+        private void configurationComputerBoard() {
+            computerBoard = new Board(boardSize, boardSize, lengthComputerSquare, "smaller-board");
+            if (gameStage != "configuration") {
+                rightPlane.getChildren().clear();
+                computerPane.getChildren().clear();
+            }
+            computerPane = computerBoard.doBoard();
+        }
+
+
+        private  void gameInformationPanel() {
+            leftPlane.getChildren().clear();
         }
 
         private boolean checkFreeSpace(int newShipSize) {
@@ -178,7 +195,7 @@ public class Battleship extends Application {
             for (int i = 0; i < textFieldShips.size(); i++) {
                 occupiedSpace += Integer.valueOf(textFieldShips.get(i).getText()) * (i + 1);
             }
-            double occupiedSpacePercent = occupiedSpace / (bigBoard.getBoardRows() * bigBoard.getBoardColumns());
+            double occupiedSpacePercent = occupiedSpace / (humanBoard.getBoardRows() * humanBoard.getBoardColumns());
             if (occupiedSpacePercent <= 0.35) {
                 return true;
             } else {
@@ -188,9 +205,8 @@ public class Battleship extends Application {
 
         private void clickRefresh(Button button) {
         button.setOnMousePressed(e -> {
-            bigBoard.getBoard().getChildren().clear();
-            refreshBoard();
-            bigBoard.drawContentBoard();
+            gameStage = "game";
+            setGameStage();
         });
         }
 
@@ -202,7 +218,7 @@ public class Battleship extends Application {
     }
 
 
-        private void clickButton(Button button) {
+    private void clickButton(Button button) {
         button.setOnMousePressed(e -> {
             if (!iDoSomething) {
                 iDoSomething = true;
@@ -215,14 +231,14 @@ public class Battleship extends Application {
                     thisTextField.setText(Integer.toString(getActualValue - 1));
 
                     Iterator<Map.Entry<ImageView, Ship>>
-                            iterator = bigBoard.getFleetMap().entrySet().iterator();
+                            iterator = humanBoard.getFleetMap().entrySet().iterator();
                     outerloop:
                     while (iterator.hasNext()) {
                         Map.Entry<ImageView, Ship> entry = iterator.next();
                         if (entry.getValue().getShipSize() == shipSize) {
-                            boolean checkCompletePut = bigBoard.putIntoBoard(entry.getValue(), 0, 0, "remove");
-                            bigBoard.removeFleetMap(entry.getKey());
-                            bigBoard.getBoard().getChildren().remove(entry.getKey());
+                            boolean checkCompletePut = humanBoard.putIntoBoard(entry.getValue(), 0, 0, "remove");
+                            humanBoard.removeFleetMap(entry.getKey());
+                            humanBoard.getBoard().getChildren().remove(entry.getKey());
                             iDoSomething = false;
                             break outerloop;
                         }
@@ -232,19 +248,19 @@ public class Battleship extends Application {
                     textInformation.getStyleClass().add("neutral-information");
                 } else if (button.getText() == "+" && checkFreeSpace(shipSize)) {
                     boolean isAdd = false;
-                    Ship randomShip = generator.randomShip(bigBoard, shipSize);
+                    Ship randomShip = generator.randomShip(humanBoard, shipSize);
                     char firstRandomShipOrientation = randomShip.getShipOrientation();
-                    ArrayList<Integer> randomCellsList = generator.randomCellsList(bigBoard);
+                    ArrayList<Integer> randomCellsList = generator.randomCellsList(humanBoard);
 
                     for(int i = 0; i < randomCellsList.size(); i++) {
                         randomShip.setActualXPosition((int) Math.floor(randomCellsList.get(i) / 10));
                         randomShip.setActualYPosition((int) randomCellsList.get(i) % 10);
-                        isAdd = bigBoard.putIntoBoard(randomShip, randomShip.getActualYPosition(), randomShip.getActualXPosition(), "add");
+                        isAdd = humanBoard.putIntoBoard(randomShip, randomShip.getActualYPosition(), randomShip.getActualXPosition(), "add");
                         dragButton(randomShip.getShipImageView());
                         clickShip(randomShip.getShipImageView());
                         if (isAdd) {
                             thisTextField.setText(Integer.toString(getActualValue + 1));
-                            bigBoard.putFleetMap(randomShip.getShipImageView(), randomShip);
+                            humanBoard.putFleetMap(randomShip.getShipImageView(), randomShip);
                             textInformation.setText("We can start, when you are ready!");
                             textInformation.getStyleClass().clear();
                             textInformation.getStyleClass().add("neutral-information");
@@ -278,62 +294,100 @@ public class Battleship extends Application {
         });
     }
 
+
+    public void stopMouseEventFromConfiguration() {
+        Iterator<Map.Entry<ImageView, Ship>>
+                iterator = humanBoard.getFleetMap().entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<ImageView, Ship> entry = iterator.next();
+            humanBoard.putIntoBoard(entry.getValue(), entry.getValue().getActualYPosition(), entry.getValue().getActualXPosition(), "remove");
+            humanBoard.getBoard().getChildren().remove(entry.getKey());
+            humanBoard.putIntoBoard(entry.getValue(), entry.getValue().getActualYPosition(), entry.getValue().getActualXPosition(), "add");
+            entry.getKey().setOnMousePressed(null);
+            entry.getKey().setOnDragDetected(null);
+            entry.getKey().setOnDragOver(null);
+        }
+    }
+
+
     private void clickShip(ImageView shipImageView) {
         shipImageView.setOnMousePressed(e -> {
             if (e.getButton() == MouseButton.SECONDARY) {
-                HashMap<ImageView, Ship> tmpMap = bigBoard.getFleetMap();
+                HashMap<ImageView, Ship> tmpMap = humanBoard.getFleetMap();
                 Ship thisShip = (Ship) tmpMap.get(shipImageView);
 
                 char thisShipOrientation = thisShip.getShipOrientation();
                 int shipStartPositionX = thisShip.getActualXPosition();
                 int shipStartPositionY = thisShip.getActualYPosition();
 
-                boolean checkCompletePut = bigBoard.putIntoBoard(thisShip, 0, 0, "remove");
-                bigBoard.getBoard().getChildren().remove(shipImageView);
+                boolean checkCompletePut = humanBoard.putIntoBoard(thisShip, 0, 0, "remove");
 
                 thisShip.changeShipOrientation();
 
                 checkCompletePut = false;
                 boolean changeVector = false;
+
                 for (int i = 0; !checkCompletePut; i++) {
-                   if (thisShipOrientation == 'v' || (thisShipOrientation == 'h' && changeVector == true)) {
-                       checkCompletePut = bigBoard.putIntoBoard(thisShip, shipStartPositionY, shipStartPositionX + i, "add");
-                       if ((i == bigBoard.getBoardRows() - 1) && !changeVector) {
-                           changeVector = true;
-                           i = 0;
-                       } else {
-                           break;
-                       }
-                   } else if (thisShipOrientation == 'h' || (thisShipOrientation == 'v' && changeVector == true)) {
-                       checkCompletePut = bigBoard.putIntoBoard(thisShip, shipStartPositionY + i, shipStartPositionX, "add");
-                       if ((i == bigBoard.getBoardColumns() - 1) && !changeVector) {
-                           changeVector = true;
-                           i = 0;
-                       } else {
-                           break;
-                       }
-                   }
+                    if ((thisShipOrientation == 'v' && !changeVector) || (thisShipOrientation == 'h' && changeVector == true)) {
+
+                        checkCompletePut = humanBoard.putIntoBoard(thisShip, shipStartPositionY, shipStartPositionX + i, "onlyCheck");
+
+                        if (checkCompletePut) {
+                            humanBoard.getBoard().getChildren().remove(shipImageView);
+                            checkCompletePut = humanBoard.putIntoBoard(thisShip, shipStartPositionY, shipStartPositionX + i, "add");
+                            break;
+                        } else if ((i == humanBoard.getBoardRows() - 1) && !changeVector) {
+                            changeVector = true;
+                            i = 0;
+                        } else if ((i == humanBoard.getBoardRows() - 1) && changeVector) {
+                            break;
+                        }
+
+                    } else if ((thisShipOrientation == 'h' && !changeVector) || (thisShipOrientation == 'v' && changeVector == true)) {
+
+                        checkCompletePut = humanBoard.putIntoBoard(thisShip, shipStartPositionY + i, shipStartPositionX, "onlyCheck");
+
+                        if (checkCompletePut) {
+                            humanBoard.getBoard().getChildren().remove(shipImageView);
+                            checkCompletePut = humanBoard.putIntoBoard(thisShip, shipStartPositionY + i, shipStartPositionX, "add");
+                            break;
+                        } else if ((i == humanBoard.getBoardColumns() - 1) && !changeVector) {
+                            changeVector = true;
+                            i = 0;
+                        } else if ((i == humanBoard.getBoardColumns() - 1) && changeVector) {
+                            break;
+                        }
+
+                    } else {
+                        break;
+                    }
                 }
 
                 if (!checkCompletePut) {
-                    ArrayList<Integer> randomCellsList = generator.randomCellsList(bigBoard);
-
+                    ArrayList<Integer> randomCellsList = generator.randomCellsList(humanBoard);
+                    outerloop:
                     for (int i = 0; i < randomCellsList.size(); i++) {
                         int newShipStartPositionX = (int) Math.floor(randomCellsList.get(i) / 10);
                         int newShipStartPositionY = (int) randomCellsList.get(i) % 10;
-                        checkCompletePut = bigBoard.putIntoBoard(thisShip, newShipStartPositionY, newShipStartPositionX, "add");
-                        dragButton(thisShip.getShipImageView());
-                        clickShip(thisShip.getShipImageView());
+                        checkCompletePut = humanBoard.putIntoBoard(thisShip, newShipStartPositionY, newShipStartPositionX, "onlyCheck");
                         if (checkCompletePut) {
+                            humanBoard.getBoard().getChildren().remove(shipImageView);
+                            checkCompletePut = humanBoard.putIntoBoard(thisShip, newShipStartPositionY, newShipStartPositionX, "add");
+                            dragButton(thisShip.getShipImageView());
+                            clickShip(thisShip.getShipImageView());
                             textInformation.setText("We can start, when you are ready!");
                             textInformation.getStyleClass().clear();
                             textInformation.getStyleClass().add("neutral-information");
-                            iDoSomething = false;
-                            break;
+                            break outerloop;
                         }
                     }
                 }
+
                 if (!checkCompletePut) {
+                    thisShip.changeShipOrientation();
+                    humanBoard.removeFleetMap(shipImageView);
+                    humanBoard.getBoard().getChildren().remove(shipImageView);
+                    humanBoard.putIntoBoard(thisShip, thisShip.getActualYPosition(), thisShip.getActualXPosition(), "add");
                     textInformation.setText("I can't do this! Maybe you can change ships positions?");
                     textInformation.getStyleClass().clear();
                     textInformation.getStyleClass().add("error-information");
@@ -369,17 +423,17 @@ public class Battleship extends Application {
             if (db.hasContent(buttonFormat)) {
                 ((Pane)draggingButton.getParent()).getChildren().remove(draggingButton);
 
-                HashMap<ImageView, Ship> tmpMap = bigBoard.getFleetMap();
+                HashMap<ImageView, Ship> tmpMap = humanBoard.getFleetMap();
                 Ship thisShip = (Ship) tmpMap.get(draggingButton);
-                boolean checkCompletePut = bigBoard.putIntoBoard(thisShip, 0, 0, "remove");
+                boolean checkCompletePut = humanBoard.putIntoBoard(thisShip, 0, 0, "remove");
 
                 Integer idPane = Integer.parseInt(pane.getId());
 
                 int shipStartPositionX = (int) Math.floor(idPane / 10);
                 int shipStartPositionY = (int) idPane % 10;
 
-                checkCompletePut = bigBoard.putIntoBoard(thisShip, shipStartPositionY, shipStartPositionX, "move");
-                bigBoard.drawContentBoard();
+                checkCompletePut = humanBoard.putIntoBoard(thisShip, shipStartPositionY, shipStartPositionX, "move");
+                humanBoard.drawContentBoard();
                 if (checkCompletePut) {
                     e.setDropCompleted(true);
                 } else {
