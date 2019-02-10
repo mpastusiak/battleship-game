@@ -1,35 +1,51 @@
-.big-board {
-     -fx-padding: 0, 0, 0, 0 ;
-    -fx-alignment: center;
- }
-*.cell {
-    -fx-background-color: black, white ;
-    -fx-background-insets: 0, 0 1 1 0 ;
-}
-*.first-column {
-    -fx-background-color: black, white ;
-    -fx-background-insets: 0, 0 1 1 1 ;
-}
-*.first-row {
-    -fx-background-color: black, white ;
-    -fx-background-insets: 0, 1 1 1 0 ;
-}
-*.first-cell {
-    -fx-background-color: black, white ;
-    -fx-background-insets: 0, 1 1 1 1 ;
-}
-*.with-ship {
-    -fx-background-color: black, red ;
-    -fx-background-insets: 0, 0 1 1 0 ;
-}
-*.reserved {
-    -fx-background-color: black, gray ;
-    -fx-background-insets: 0, 0 1 1 0 ;
+.hbox {
+    -fx-pref-width: 1000;
+    -fx-max-width: 1000;
+    -fx-pref-height: 600;
+    -fx-max-height: 600;
 }
 
-.smaller-board {
+.left-plane {
+    -fx-pref-width: 250;
+    -fx-max-width: 250;
+    -fx-pref-height: 600;
+    -fx-padding: 25;
+    -fx-alignment: CENTER-LEFT;
+}
+
+.center-plane, .right-plane {
+    -fx-pref-width: 375;
+    -fx-max-width: 375;
+    -fx-pref-height: 600;
+    -fx-max-height: 600;
+    -fx-padding: 25;
+    -fx-alignment: CENTER-LEFT;
+}
+
+.human-board, .computer-board {
     -fx-padding: 0, 0, 0, 0 ;
-    -fx-alignment: center;
+    -fx-border-color: BLACK;
+    -fx-border-width: 0.5;
+ }
+*.cell, .with-ship, .reserved, .hit, .hit-sink, .missed {
+    -fx-border-color: BLACK;
+    -fx-border-width: 0.5;
+    -fx-background-color: WHITE;
+}
+.human-board .with-ship {
+    -fx-background-color: GREEN;
+}
+*.reserved {
+    -fx-background-color: WHITE;
+}
+*.hit {
+    -fx-background-color: PINK;
+}
+*.hit-sink {
+    -fx-background-color: RED;
+}
+*.missed {
+    -fx-background-color: #bcbcbc;
 }
 
 .ship {
@@ -46,17 +62,45 @@
 .label {
     -fx-font-size: 11;
     -fx-font-color: black;
-    -fx-alignment: center;
+    -fx-min-height: 25;
 }
 
-.neutral-information {
-    -fx-font-size: 15;
-    -fx-text-fill: black;
+.empty-label {
+    -fx-min-height: 5;
+}
+
+.options-label {
+    -fx-font-size: 13;
+    -fx-min-height: 30;
+    -fx-font-weight: bold;
+}
+
+.neutral-information, .error-information, .good-information {
+    -fx-font-size: 14;
+    -fx-text-fill: BLACK;
     -fx-font-weight: normal;
+    -fx-pref-height: 150;
+    -fx-pref-width: 250;
+    -fx-wrap-text: true;
+    -fx-background-color: WHITE;
+    -fx-border-width: 2;
+    -fx-border-color: BLACK;
+    -fx-alignment: center;
+    -fx-padding: 10;
 }
 
 .error-information {
-    -fx-font-size: 15;
     -fx-text-fill: RED;
     -fx-font-weight: bold;
+}
+
+.good-information {
+    -fx-text-fill: GREEN;
+    -fx-font-weight: bold;
+}
+
+.start-button {
+    -fx-pref-height: 75;
+    -fx-pref-width: 250;
+    -fx-font-size: 15;
 }

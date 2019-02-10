@@ -1,12 +1,11 @@
 package com.projects.battleship;
 
-import javafx.event.EventHandler;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Map;
 
 public class Board {
@@ -15,8 +14,9 @@ public class Board {
     private int lengthSquare;
     private String boardStyle;
     private GridPane board;
-    private HashMap<Integer, String> reservedCells;
-    private HashMap<ImageView, Ship> fleetMap;
+    private HashMap<Integer, String> reservedCellsMap;
+    private HashMap<ImageView, Ship> shipsWithViewMap;
+    private HashMap<Integer, Ship> panesWithShipsMap;
 
     public Board(int boardColumns, int boardRows, int lengthSquare, String boardStyle) {
         this.boardColumns = boardColumns;
@@ -51,20 +51,12 @@ public class Board {
                 pane.getStyleClass().add("cell");
                 pane.getProperties().put("game-status","empty");
                 board.add(pane, i, j);
-                if (i == 0) {
-                    pane.getStyleClass().add("first-column");
-                }
-                if (j == 0) {
-                    pane.getStyleClass().add("first-row");
-                }
-                if (j == 0 && i == 0) {
-                    pane.getStyleClass().add("first-cell");
-                }
             }
         }
         this.board = board;
-        this.reservedCells = new HashMap<>();
-        this.fleetMap = new HashMap<>();
+        this.reservedCellsMap = new HashMap<>();
+        this.shipsWithViewMap = new HashMap<>();
+        this.panesWithShipsMap = new HashMap<>();
         return board;
     }
 
@@ -90,7 +82,7 @@ public class Board {
     public boolean checkKeyOnMap(int keyToBeChecked, String valueToBeChecked) {
 
         Iterator<Map.Entry<Integer, String>>
-                iterator = reservedCells.entrySet().iterator();
+                iterator = reservedCellsMap.entrySet().iterator();
 
         boolean isKeyPresent = false;
 
@@ -140,14 +132,16 @@ public class Board {
         HashMap<Integer, String> addCellsMap = new HashMap<>();
         HashMap<Integer, String> removeCellsMap = new HashMap<>();
 
-        if(type == "add" || type == "move" || type == "onlyCheck") {
+        if(type == "add" || type == "move" || type == "onlyCheck" || type == "reserved") {
             addCellsMap = changePanesOnBoard(ship, shipNewStartPositionY, shipNewStartPositionX, newShipOrientation, "add");
         } else if (type == "remove") {
             removeCellsMap = changePanesOnBoard(ship, shipOldStartPositionY, shipOldStartPositionX, newShipOrientation, "remove");
+        } else if (type == "hit-sink") {
+            addCellsMap = changePanesOnBoard(ship, shipNewStartPositionY, shipNewStartPositionX, newShipOrientation, "hit-sink");
         }
 
         int maxIdCell = getBoardColumns() * getBoardRows() - 1;
-        int tmpKey = -1;
+        int firstKey = idNewShipPosition;
 
         Iterator<Map.Entry<Integer, String>>
                 iterator = addCellsMap.entrySet().iterator();
@@ -158,13 +152,11 @@ public class Board {
                     = iterator.next();
             if (entry.getKey() > maxIdCell) {
                 areInBoardRange = false;
-            } else if ((entry.getValue() == "with-ship")
-                    && (tmpKey > -1)
-                    && (entry.getKey() - tmpKey == 1)
-                    && (entry.getKey() % 10 == 0)) {
+            } else if ((entry.getValue() == "with-ship") &&
+                    (getIdPaneToXYPosition(entry.getKey()).getFirst() != getIdPaneToXYPosition(firstKey).getFirst()) &&
+                            (getIdPaneToXYPosition(entry.getKey()).getLast() != getIdPaneToXYPosition(firstKey).getLast())) {
                 areInBoardRange = false;
             }
-            tmpKey = entry.getKey();
         }
 
         if (shipNewStartPositionX >= getBoardColumns() || shipNewStartPositionY >= getBoardRows()) {
@@ -179,18 +171,38 @@ public class Board {
                 imageView = ship.setShipImageView();
             }
 
-            imageView.getProperties().put("gridpane-column", shipNewStartPositionX);
-            imageView.getProperties().put("gridpane-row", shipNewStartPositionY);
-            imageView.getProperties().put("gridpane-column-span", colspan);
-            imageView.getProperties().put("gridpane-row-span", rowspan);
+            if (type != "reserved" && !board.getChildren().contains(imageView)) {
+                imageView.getProperties().put("gridpane-column", shipNewStartPositionX);
+                imageView.getProperties().put("gridpane-row", shipNewStartPositionY);
+                imageView.getProperties().put("gridpane-column-span", colspan);
+                imageView.getProperties().put("gridpane-row-span", rowspan);
 
-            board.add(imageView, shipNewStartPositionX, shipNewStartPositionY, colspan, rowspan);
+                board.add(imageView, shipNewStartPositionX, shipNewStartPositionY, colspan, rowspan);
+                if (type != "hit-sink") {
+                    shipsWithViewMap.put(imageView, ship);
+                }
+            }
+
+            if (type == "hit-sink") {
+                shipsWithViewMap.remove(imageView);
+            }
 
             ship.setActualXPosition(shipNewStartPositionX);
             ship.setActualYPosition(shipNewStartPositionY);
 
-            fleetMap.put(imageView, ship);
-            reservedCells.putAll(addCellsMap);
+            reservedCellsMap.putAll(addCellsMap);
+
+            LinkedList<Integer> shipPanePositions = new LinkedList<>();
+            iterator = addCellsMap.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<Integer, String> entry = iterator.next();
+                if (entry.getValue() == "with-ship") {
+                    shipPanePositions.addLast(entry.getKey());
+                    panesWithShipsMap.put(entry.getKey(), ship);
+                }
+            }
+            ship.getShipPositionsList().clear();
+            ship.setPaneShipPositionsList(shipPanePositions);
 
             fullLoop = true;
 
@@ -198,8 +210,9 @@ public class Board {
             putIntoBoard(ship,shipOldStartPositionY,shipOldStartPositionX,"add");
 
         } else if (type == "remove") {
-            reservedCells.keySet().removeAll(removeCellsMap.keySet());
-
+            ship.getShipPositionsList().clear();
+            reservedCellsMap.keySet().removeAll(removeCellsMap.keySet());
+            panesWithShipsMap.keySet().removeAll(removeCellsMap.keySet());
         } else if (addCellsMap.size() > 0 && areInBoardRange && type == "onlyCheck") {
             fullLoop = true;
         }
@@ -227,6 +240,9 @@ public class Board {
         } else if (type == "remove") {
             typeMainCell = "empty";
             typeSecondaryCell = "empty";
+        } else if (type == "hit-sink") {
+            typeMainCell = "hit-sink";
+            typeSecondaryCell = "missed";
         }
 
         outerloop:
@@ -322,22 +338,23 @@ public class Board {
             putGameStatus(i, "empty");
         }
 
-        Iterator iterator = reservedCells.entrySet().iterator();
+        Iterator iterator = reservedCellsMap.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry pair = (Map.Entry)iterator.next();
             putStyle((Integer)pair.getKey(), pair.getValue().toString());
             putGameStatus((Integer)pair.getKey(), pair.getValue().toString());
-            // iterator.remove();
         }
     }
 
-    public HashMap<ImageView, Ship> getFleetMap() {
-        return fleetMap;
+    public HashMap<ImageView, Ship> getShipsWithViewMap() {
+        return shipsWithViewMap;
     }
 
-    public HashMap<Integer, String> getReservedCalls() {
-        return reservedCells;
+    public HashMap<Integer, String> getReservedCallsMaps() {
+        return reservedCellsMap;
     }
+
+    public HashMap<Integer, Ship> getPanesWithShipsMap() { return panesWithShipsMap; }
 
     public int getBoardColumns() {
         return boardColumns;
@@ -351,12 +368,21 @@ public class Board {
         return board;
     }
 
-    public void putFleetMap(ImageView imageView, Ship ship) {
-        this.fleetMap.put(imageView, ship);
+    public void putShipsWithViewMap(ImageView imageView, Ship ship) {
+        this.shipsWithViewMap.put(imageView, ship);
     }
 
-    public void removeFleetMap(ImageView imageView) {
-        this.fleetMap.remove(imageView);
+    public void removeShipsWithViewMap(ImageView imageView) {
+        this.shipsWithViewMap.remove(imageView);
+    }
+
+    public LinkedList<Integer> getIdPaneToXYPosition(int idPane) {
+        int xPosition = (int) Math.floor(idPane / 10);
+        int yPosition = (int) idPane % 10;
+        LinkedList<Integer> paneXYPositionList = new LinkedList<>();
+        paneXYPositionList.add(xPosition);
+        paneXYPositionList.addLast(yPosition);
+        return paneXYPositionList;
     }
 
 }

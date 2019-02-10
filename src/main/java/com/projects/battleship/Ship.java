@@ -4,6 +4,8 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.paint.Color;
 
+import java.util.LinkedList;
+
 public class Ship {
     private int shipSize;
     private int fitHeight;
@@ -14,6 +16,7 @@ public class Ship {
     private int shipHeight;
     private int actualXPosition;
     private int actualYPosition;
+    private LinkedList<Integer> shipPanePositionsList;
     private ImageView shipImageView;
 
     public Ship(int shipSize, int fitHeight, char shipOrientation) {
@@ -30,6 +33,7 @@ public class Ship {
         }
         this.imageClassShip = new Image(urlImageShip, shipWidth, shipHeight, false, true);
         this.shipOrientation = shipOrientation;
+        this.shipPanePositionsList = new LinkedList<>();
         setShipImageView();
     }
 
@@ -59,6 +63,12 @@ public class Ship {
 
     public int getActualYPosition() {
         return actualYPosition;
+    }
+
+    public LinkedList<Integer> getShipPositionsList() { return shipPanePositionsList; }
+
+    public void setPaneShipPositionsList(LinkedList<Integer> shipPanePositionsList) {
+        this.shipPanePositionsList = shipPanePositionsList;
     }
 
     public void setActualXPosition(int positionX) {

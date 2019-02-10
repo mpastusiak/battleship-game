@@ -1,13 +1,16 @@
 package com.projects.battleship;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.*;
 import javafx.scene.layout.*;
@@ -16,21 +19,24 @@ import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import java.util.*;
-
-import static java.lang.Math.abs;
 
 public class Battleship extends Application {
 
     private HBox hBox = new HBox(25);
     private GridPane leftPlane = new GridPane();
-    private Pane centerPlane = new Pane();
-    private Pane rightPlane = new Pane();
+    private GridPane centerPlane = new GridPane();
+    private GridPane rightPlane = new GridPane();
 
     int lengthHumanSquare = 30;
     int lengthComputerSquare = 30;
     int boardSize = 10;
+
+    private ChoiceBox choiceDifficultyLevel = new ChoiceBox(FXCollections.observableArrayList(
+            "easy", "medium", "hard")
+    );
 
     private Board humanBoard;
     private Pane humanPane;
@@ -45,6 +51,9 @@ public class Battleship extends Application {
     private boolean iDoSomething = false;
     private Label textInformation = new Label();
     private String gameStage = "configuration";
+    private boolean playerTurn = true;
+    private AI computerPlayer = new AI();
+    private Attack attack = new Attack();
 
     public static void main(String[] args) {
         launch(args);
@@ -57,27 +66,30 @@ public class Battleship extends Application {
 
             if (gameStage == "configuration") {
                 setConfigurationStage();
+                choiceDifficultyLevel.getSelectionModel().select(1);
             } else if (gameStage == "game") {
                 setGameStage();
             }
-
+            leftPlane.getStyleClass().add("left-plane");
             centerPlane.getChildren().addAll(humanPane);
+            centerPlane.getStyleClass().add("center-plane");
             rightPlane.getChildren().addAll(computerPane);
+            rightPlane.getStyleClass().add("right-plane");
             hBox.getChildren().addAll(leftPlane, centerPlane, rightPlane);
 
             LinearGradient backgroundGradient = new LinearGradient(0.5, 0.5, 1, 1, true, CycleMethod.NO_CYCLE, new Stop(0, Color.AQUA), new Stop(1, Color.BLUE));
             BackgroundFill backgroundFill = new BackgroundFill(backgroundGradient, CornerRadii.EMPTY, new Insets(0, 0, 0, 0));
             Background background = new Background(backgroundFill);
 
-            Scene scene = new Scene(hBox, 900, 600, Color.BLACK);
+            Scene scene = new Scene(hBox, 1000, 600, Color.BLACK);
             scene.getStylesheets().add("battleship-styles.css");
             hBox.setBackground(background);
-            hBox.setMinSize(900, 600);
+            hBox.getStyleClass().add("hbox");
 
             primaryStage.setTitle("Battleship");
             primaryStage.setScene(scene);
             primaryStage.setHeight(600);
-            primaryStage.setWidth(900);
+            primaryStage.setWidth(1000);
             primaryStage.setResizable(false);
             primaryStage.show();
         } catch(Exception e) {
@@ -95,13 +107,23 @@ public class Battleship extends Application {
         private void setGameStage() {
             gameInformationPanel();
             stopMouseEventFromConfiguration();
+            doComputerShip();
+            String difficultyLevel = (String) choiceDifficultyLevel.getValue();
+            computerPlayer.attackConfiguration(humanBoard, difficultyLevel);
+            activeAttackComputerBoard();
+        }
+
+
+        private void setEndGameStage() {
+
         }
 
 
         private void configurationPanel() {
 
             Label optionsLabel = new Label();
-            optionsLabel.setText("Options");
+            optionsLabel.getStyleClass().add("options-label");
+            optionsLabel.setText("GAME OPTIONS");
             leftPlane.add(optionsLabel,0,0,3,1);
 
             for (int i = 1; i <= 5; i++) {
@@ -126,21 +148,52 @@ public class Battleship extends Application {
                 leftPlane.add(buttonPlusShip, 2,(i*2),1,1);
             }
 
-            Button buttonRefresh = new Button();
-            buttonRefresh.setText("Confirm");
-            clickRefresh(buttonRefresh);
-            leftPlane.add(buttonRefresh, 0, 11, 3, 1);
+            Label emptyLabel1 = new Label();
+            emptyLabel1.getStyleClass().clear();
+            emptyLabel1.getStyleClass().add("empty-label");
+            leftPlane.add(emptyLabel1, 0, 11,3,1);
+
+            Label textChoiceDifficultyLevel = new Label();
+            textChoiceDifficultyLevel.setText("Choose level: ");
+            leftPlane.add(textChoiceDifficultyLevel, 0, 12, 2, 1);
+            leftPlane.add(choiceDifficultyLevel, 2, 12, 1, 1);
+
+            Label emptyLabel2 = new Label();
+            emptyLabel2.getStyleClass().clear();
+            emptyLabel2.getStyleClass().add("empty-label");
+            leftPlane.add(emptyLabel2, 0, 13,3,1);
+
+            Button startButton = new Button();
+            startButton.setText("Let's play!");
+            startButton.getStyleClass().add("start-button");
+            clickRefresh(startButton);
+            leftPlane.add(startButton, 0, 14, 3, 1);
+
+            Label emptyLabel3 = new Label();
+            emptyLabel3.getStyleClass().clear();
+            emptyLabel3.getStyleClass().add("empty-label");
+            leftPlane.add(emptyLabel3, 0, 15,3,1);
 
             textInformation.setText("We can start, when you are ready!");
             textInformation.getStyleClass().add("neutral-information");
-            leftPlane.add(textInformation, 0, 12,3,1);
+            leftPlane.add(textInformation, 0, 16,3,1);
 
         }
 
 
 
+    private  void gameInformationPanel() {
+        leftPlane.getChildren().clear();
+        textInformation.setText("Your turn!");
+        textInformation.getStyleClass().clear();
+        textInformation.getStyleClass().add("neutral-information");
+        leftPlane.add(textInformation, 0, 0);
+    }
+
+
         private void configurationHumanBoard() {
-            humanBoard = new Board(boardSize, boardSize, lengthHumanSquare, "big-board");
+
+            humanBoard = new Board(boardSize, boardSize, lengthHumanSquare, "human-board");
             humanPane = humanBoard.doBoard();
             humanPane.setId("humanPane");
 
@@ -156,28 +209,59 @@ public class Battleship extends Application {
 
             humanBoard.drawContentBoard();
 
-            if (gameStage == "configuration") {
+            for (Node child : humanPane.getChildrenUnmodifiable()) {
 
-                for (Node child : humanPane.getChildrenUnmodifiable()) {
+                if (child instanceof ImageView) {
+                    ImageView imageView = (ImageView) child;
+                    dragButton(imageView);
+                    clickShip(imageView);
+                }
 
-                    if (child instanceof ImageView) {
-                        ImageView imageView = (ImageView) child;
-                        dragButton(imageView);
-                        clickShip(imageView);
-                    }
-
-                    if (child instanceof StackPane) {
-                        StackPane pane = (StackPane) child;
-                        addDropHandling(pane);
-                    }
+                if (child instanceof StackPane) {
+                    StackPane pane = (StackPane) child;
+                    addDropHandling(pane);
                 }
             }
         }
 
 
+    public void stopMouseEventFromConfiguration() {
+        Iterator<Map.Entry<ImageView, Ship>>
+                iterator = humanBoard.getShipsWithViewMap().entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<ImageView, Ship> entry = iterator.next();
+            humanBoard.putIntoBoard(entry.getValue(), entry.getValue().getActualYPosition(), entry.getValue().getActualXPosition(), "remove");
+            humanBoard.getBoard().getChildren().remove(entry.getKey());
+            humanBoard.putIntoBoard(entry.getValue(), entry.getValue().getActualYPosition(), entry.getValue().getActualXPosition(), "add");
+            entry.getKey().setOnMousePressed(null);
+            entry.getKey().setOnDragDetected(null);
+            entry.getKey().setOnDragOver(null);
+        }
+    }
 
-        private void configurationComputerBoard() {
-            computerBoard = new Board(boardSize, boardSize, lengthComputerSquare, "smaller-board");
+
+    public Map<ImageView, Ship> sortFleet(Board board) {
+        List<Ship> shipsBySize = new ArrayList<Ship>(board.getShipsWithViewMap().values());
+
+        Collections.sort(shipsBySize, new Comparator<Ship>() {
+
+            public int compare(Ship o1, Ship o2) {
+                return o1.getShipSize() - o2.getShipSize();
+            }
+        });
+
+        board.getShipsWithViewMap().clear();
+        LinkedHashMap<ImageView, Ship> sortedBoardMap = new LinkedHashMap<>();
+
+        for (int i = shipsBySize.size()-1; i >= 0; i--) {
+            board.getShipsWithViewMap().put(shipsBySize.get(i).getShipImageView(), shipsBySize.get(i));
+            sortedBoardMap.put(shipsBySize.get(i).getShipImageView(), shipsBySize.get(i));
+        }
+        return sortedBoardMap;
+    }
+
+        private void configurationComputerBoard () {
+            computerBoard = new Board(boardSize, boardSize, lengthComputerSquare, "computer-board");
             if (gameStage != "configuration") {
                 rightPlane.getChildren().clear();
                 computerPane.getChildren().clear();
@@ -186,9 +270,52 @@ public class Battleship extends Application {
         }
 
 
-        private  void gameInformationPanel() {
-            leftPlane.getChildren().clear();
+    public void doComputerShip() {
+        Map sortHumanFleet = sortFleet(humanBoard);
+        while (sortHumanFleet.size() != computerBoard.getShipsWithViewMap().size()) {
+            Iterator<Map.Entry<ImageView, Ship>>
+                    iterator = sortHumanFleet.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<ImageView, Ship> entry = iterator.next();
+                int humanShipSize = entry.getValue().getShipSize();
+
+                ArrayList<Integer> randomCellsList = generator.randomCellsList(computerBoard);
+                boolean isAdd;
+
+                Ship randomShip = generator.randomShip(computerBoard, humanShipSize);
+                char firstRandomShipOrientation = randomShip.getShipOrientation();
+
+                outerloop:
+                for (int i = 0; i < randomCellsList.size(); i++) {
+                    randomShip.setActualXPosition((int) Math.floor(randomCellsList.get(i) / 10));
+                    randomShip.setActualYPosition((int) randomCellsList.get(i) % 10);
+                    isAdd = computerBoard.putIntoBoard(randomShip, randomShip.getActualYPosition(), randomShip.getActualXPosition(), "reserved");
+                    if (isAdd) {
+                        computerBoard.putShipsWithViewMap(randomShip.getShipImageView(), randomShip);
+                        break outerloop;
+                    } else if ((i == randomCellsList.size() - 1) && (randomShip.getShipOrientation() == firstRandomShipOrientation)) {
+                        randomShip.changeShipOrientation();
+                        i = 0;
+                    }
+                }
+            }
+            if (humanBoard.getShipsWithViewMap().size() != computerBoard.getShipsWithViewMap().size()) {
+                computerBoard.getShipsWithViewMap().clear();
+                // remove reserved
+            }
         }
+    }
+
+
+    private void activeAttackComputerBoard() {
+        for (Node child : computerPane.getChildrenUnmodifiable()) {
+
+            if (child instanceof StackPane) {
+                StackPane pane = (StackPane) child;
+                playerAttack(pane);
+            }
+        }
+    }
 
         private boolean checkFreeSpace(int newShipSize) {
             double occupiedSpace = newShipSize;
@@ -231,13 +358,13 @@ public class Battleship extends Application {
                     thisTextField.setText(Integer.toString(getActualValue - 1));
 
                     Iterator<Map.Entry<ImageView, Ship>>
-                            iterator = humanBoard.getFleetMap().entrySet().iterator();
+                            iterator = humanBoard.getShipsWithViewMap().entrySet().iterator();
                     outerloop:
                     while (iterator.hasNext()) {
                         Map.Entry<ImageView, Ship> entry = iterator.next();
                         if (entry.getValue().getShipSize() == shipSize) {
                             boolean checkCompletePut = humanBoard.putIntoBoard(entry.getValue(), 0, 0, "remove");
-                            humanBoard.removeFleetMap(entry.getKey());
+                            humanBoard.removeShipsWithViewMap(entry.getKey());
                             humanBoard.getBoard().getChildren().remove(entry.getKey());
                             iDoSomething = false;
                             break outerloop;
@@ -260,7 +387,7 @@ public class Battleship extends Application {
                         clickShip(randomShip.getShipImageView());
                         if (isAdd) {
                             thisTextField.setText(Integer.toString(getActualValue + 1));
-                            humanBoard.putFleetMap(randomShip.getShipImageView(), randomShip);
+                            humanBoard.putShipsWithViewMap(randomShip.getShipImageView(), randomShip);
                             textInformation.setText("We can start, when you are ready!");
                             textInformation.getStyleClass().clear();
                             textInformation.getStyleClass().add("neutral-information");
@@ -295,25 +422,10 @@ public class Battleship extends Application {
     }
 
 
-    public void stopMouseEventFromConfiguration() {
-        Iterator<Map.Entry<ImageView, Ship>>
-                iterator = humanBoard.getFleetMap().entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<ImageView, Ship> entry = iterator.next();
-            humanBoard.putIntoBoard(entry.getValue(), entry.getValue().getActualYPosition(), entry.getValue().getActualXPosition(), "remove");
-            humanBoard.getBoard().getChildren().remove(entry.getKey());
-            humanBoard.putIntoBoard(entry.getValue(), entry.getValue().getActualYPosition(), entry.getValue().getActualXPosition(), "add");
-            entry.getKey().setOnMousePressed(null);
-            entry.getKey().setOnDragDetected(null);
-            entry.getKey().setOnDragOver(null);
-        }
-    }
-
-
     private void clickShip(ImageView shipImageView) {
         shipImageView.setOnMousePressed(e -> {
             if (e.getButton() == MouseButton.SECONDARY) {
-                HashMap<ImageView, Ship> tmpMap = humanBoard.getFleetMap();
+                HashMap<ImageView, Ship> tmpMap = humanBoard.getShipsWithViewMap();
                 Ship thisShip = (Ship) tmpMap.get(shipImageView);
 
                 char thisShipOrientation = thisShip.getShipOrientation();
@@ -385,7 +497,7 @@ public class Battleship extends Application {
 
                 if (!checkCompletePut) {
                     thisShip.changeShipOrientation();
-                    humanBoard.removeFleetMap(shipImageView);
+                    humanBoard.removeShipsWithViewMap(shipImageView);
                     humanBoard.getBoard().getChildren().remove(shipImageView);
                     humanBoard.putIntoBoard(thisShip, thisShip.getActualYPosition(), thisShip.getActualXPosition(), "add");
                     textInformation.setText("I can't do this! Maybe you can change ships positions?");
@@ -423,7 +535,7 @@ public class Battleship extends Application {
             if (db.hasContent(buttonFormat)) {
                 ((Pane)draggingButton.getParent()).getChildren().remove(draggingButton);
 
-                HashMap<ImageView, Ship> tmpMap = humanBoard.getFleetMap();
+                HashMap<ImageView, Ship> tmpMap = humanBoard.getShipsWithViewMap();
                 Ship thisShip = (Ship) tmpMap.get(draggingButton);
                 boolean checkCompletePut = humanBoard.putIntoBoard(thisShip, 0, 0, "remove");
 
@@ -443,5 +555,44 @@ public class Battleship extends Application {
             }
         });
 
+    }
+
+    private void playerAttack(StackPane pane) {
+        pane.setOnMousePressed(e -> {
+            if (playerTurn) {
+                Integer idPane = Integer.parseInt(pane.getId());
+                boolean isHit = attack.attack(computerBoard,idPane);
+                if(isHit){
+                    if (computerBoard.getShipsWithViewMap().size() == 0) {
+                        textInformation.getStyleClass().clear();
+                        textInformation.getStyleClass().add("good-information");
+                        textInformation.setText("! YOU WIN !");
+                    }
+                } else {
+                    playerTurn = false;
+                    computerAttack();
+                }
+            }
+        });
+    }
+
+    private void computerAttack() {
+        textInformation.setText("Computer's turn!");
+        boolean isHit = computerPlayer.easyAttack(humanBoard);
+        if(isHit){
+            if (humanBoard.getShipsWithViewMap().size() == 0) {
+                textInformation.getStyleClass().clear();
+                textInformation.getStyleClass().add("error-information");
+                textInformation.setText("! COMPUTER WIN :( !");
+            } else {
+                Timeline timeline = new Timeline(new KeyFrame(
+                        Duration.millis(1000),
+                        ae -> computerAttack()));
+                timeline.play();
+            }
+        } else {
+            playerTurn = true;
+            textInformation.setText("Your turn!");
+        }
     }
 }
