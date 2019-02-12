@@ -7,16 +7,17 @@ import java.util.Objects;
 class Attack {
     public boolean attack(Board board, Integer idPane) {
         boolean isHit = false;
-        String paneGameStatus = board.getGameStatus(idPane);
+        String paneGameStatus = board.getGameStatusOfCell(idPane);
         switch (paneGameStatus) {
             case "with-ship":
-                isHit = attackWithHit(board, idPane);
+                isHit = true;
+                attackWithHit(board, idPane);
                 break;
 
             case "empty":
             case "reserved":
-                board.putGameStatus(idPane, "missed");
-                board.putStyle(idPane, "missed");
+                board.setGameStatusOfCell(idPane, "missed");
+                board.setStyleOfCell(idPane, "missed");
                 board.getReservedCallsMaps().put(idPane, "missed");
                 isHit = false;
                 break;
@@ -33,10 +34,9 @@ class Attack {
         return isHit;
     }
 
-    private boolean attackWithHit(Board board, Integer idPane) {
-        boolean isHit;
-        board.putGameStatus(idPane, "hit");
-        board.putStyle(idPane, "hit");
+    private void attackWithHit(Board board, Integer idPane) {
+        board.setGameStatusOfCell(idPane, "hit");
+        board.setStyleOfCell(idPane, "hit");
         Ship thisShip = board.getPanesWithShipsMap().get(idPane);
 
         boolean isHitYet = findCellsThatCanHit(board, thisShip);
@@ -48,9 +48,6 @@ class Attack {
         } else {
             board.getReservedCallsMaps().put(idPane, "hit");
         }
-
-        isHit = true;
-        return true;
     }
 
     private boolean findCellsThatCanHit(Board board, Ship thisShip) {
@@ -59,7 +56,7 @@ class Attack {
         LinkedList<Integer> thisShipPanePositionsList = thisShip.getShipPositionsList();
         ListIterator listIterator = thisShipPanePositionsList.listIterator(0);
         while (listIterator.hasNext()) {
-            if (Objects.equals(board.getGameStatus((Integer) listIterator.next()), "with-ship")) {
+            if (Objects.equals(board.getGameStatusOfCell((Integer) listIterator.next()), "with-ship")) {
                 isHitYet = true;
             }
         }

@@ -10,7 +10,7 @@ class AI {
     private final RandomValues randomValues = new RandomValues();
     private ArrayList<Integer> attackCellsList;
 
-    public void attackConfiguration(Board board, String difficultyLevel) {
+    public void computerMoves(Board board, String difficultyLevel) {
         this.attackCellsList = randomValues.randomCellsBoardList(board);
 
         switch (difficultyLevel) {
@@ -27,23 +27,11 @@ class AI {
         }
     }
 
-    private int movesForCellsWithShipHard(Board board, int i, int idPane) {
-        Ship thisShip = board.getPanesWithShipsMap().get(idPane);
-
-        LinkedList<Integer> thisShipPanePositionsList = thisShip.getShipPositionsList();
-        List<Integer> thisShipPanePositionsArray = new ArrayList<>(thisShipPanePositionsList);
-
-        attackCellsList.removeAll(thisShipPanePositionsArray);
-        attackCellsList.addAll(i, thisShipPanePositionsArray);
-        i += thisShip.getShipSize();
-        return i;
-    }
-
     private void checkAllCellsProperties(Board board, String difficultyLevel) {
         for (int i = 0; i < attackCellsList.size(); i++) {
             int idPane = attackCellsList.get(i);
 
-            if (Objects.equals(board.getGameStatus(idPane), "with-ship")) {
+            if (Objects.equals(board.getGameStatusOfCell(idPane), "with-ship")) {
                 if (Objects.equals(difficultyLevel, "medium")) {
                     i = movesForCellsWithShipMedium(board, i, idPane);
                 } else if (Objects.equals(difficultyLevel, "hard")) {
@@ -75,7 +63,7 @@ class AI {
 
                     tmpAttackList.add(nextCellAttackPosition);
 
-                    if (Objects.equals(board.getGameStatus(nextCellAttackPosition), "with-ship")) {
+                    if (Objects.equals(board.getGameStatusOfCell(nextCellAttackPosition), "with-ship")) {
                         counterThisHitAttacks++;
                         if (addPosition > 0) {
                             addPosition++;
@@ -103,7 +91,7 @@ class AI {
 
                     tmpAttackList.add(nextCellAttackPosition);
 
-                    if (Objects.equals(board.getGameStatus(nextCellAttackPosition), "with-ship")) {
+                    if (Objects.equals(board.getGameStatusOfCell(nextCellAttackPosition), "with-ship")) {
                         counterThisHitAttacks++;
                         if (addPosition > 0) {
                             addPosition++;
@@ -132,10 +120,21 @@ class AI {
         return i;
     }
 
+    private int movesForCellsWithShipHard(Board board, int i, int idPane) {
+        Ship thisShip = board.getPanesWithShipsMap().get(idPane);
+
+        LinkedList<Integer> thisShipPanePositionsList = thisShip.getShipPositionsList();
+        List<Integer> thisShipPanePositionsArray = new ArrayList<>(thisShipPanePositionsList);
+
+        attackCellsList.removeAll(thisShipPanePositionsArray);
+        attackCellsList.addAll(i, thisShipPanePositionsArray);
+        i += thisShip.getShipSize();
+        return i;
+    }
+
     public boolean attack(Board board) {
         boolean isHit = attack.attack(board, attackCellsList.get(0));
         attackCellsList.remove(0);
         return isHit;
     }
-
 }

@@ -26,34 +26,44 @@ import java.util.*;
 
 public class BattleshipRunner extends Application {
 
+    //main layout initiation
     private final HBox hBox = new HBox(25);
-    private final GridPane leftPlane = new GridPane();
-    private GridPane centerPlane = new GridPane();
-    private GridPane rightPlane = new GridPane();
 
+    //layouts in main layout initiation
+    private final GridPane leftPlane = new GridPane();
+    private final GridPane centerPlane = new GridPane();
+    private final GridPane rightPlane = new GridPane();
+
+    //number of rows and columns on game boards
     private final int boardSize = 10;
 
+    //human and computer board layout initiation
     private Board humanBoard;
     private Pane humanPane;
 
     private Board computerBoard;
     private Pane computerPane;
 
+    //list with text fields present numbers of ships
     private final LinkedList<TextField> textFieldShips = new LinkedList<>();
 
+    //main interactive objects
     private final Button mainButton = new Button();
     private final Label textInformation = new Label();
     private final ChoiceBox<String> choiceDifficultyLevel = new ChoiceBox<>(FXCollections.observableArrayList(
             "easy", "medium", "hard")
     );
 
+    //drag and drop objects
     private final DataFormat dataFormat = new DataFormat("myShip");
     private Node draggingShipImage;
 
+    //game variable
     private String gameStage = "configuration";
     private boolean playerTurn = true;
     private boolean iDoSomething = false;
 
+    //game constructors
     private final AI computerPlayer = new AI();
     private final Attack attack = new Attack();
     private final RandomValues generator = new RandomValues();
@@ -62,35 +72,39 @@ public class BattleshipRunner extends Application {
         launch(args);
     }
 
-
     @Override
     public void start(Stage primaryStage) {
         try {
+            setConfigurationStage();
 
-            if (Objects.equals(gameStage, "configuration")) {
-                setConfigurationStage();
-                choiceDifficultyLevel.getSelectionModel().select(1);
-            } else if (Objects.equals(gameStage, "game")) {
-                setGameStage();
-            }
+            //check default difficulty level - medium
+            choiceDifficultyLevel.getSelectionModel().select(1);
 
+            //add style classes for main button and layouts
             mainButton.getStyleClass().add("start-button");
 
             leftPlane.getStyleClass().add("left-plane");
             centerPlane.getStyleClass().add("center-plane");
             rightPlane.getStyleClass().add("right-plane");
+
+            //add layouts to main layout
             hBox.getChildren().addAll(leftPlane, centerPlane, rightPlane);
 
+            //set gradient background to main layout
             LinearGradient backgroundGradient = new LinearGradient(0.5, 0.5, 1, 1, true, CycleMethod.NO_CYCLE, new Stop(0, Color.AQUA), new Stop(1, Color.BLUE));
             BackgroundFill backgroundFill = new BackgroundFill(backgroundGradient, CornerRadii.EMPTY, new Insets(0, 0, 0, 0));
             Background background = new Background(backgroundFill);
-
-            Scene scene = new Scene(hBox, 1000, 600, Color.BLACK);
-            scene.getStylesheets().add("battleship-styles.css");
             hBox.setBackground(background);
+
+            //add style class to main layout
             hBox.getStyleClass().add("hbox");
 
-            primaryStage.setTitle("BattleshipRunner");
+            //scene initiation and add stylesheet
+            Scene scene = new Scene(hBox, 1000, 600, Color.BLACK);
+            scene.getStylesheets().add("battleship-styles.css");
+
+            //set javafx stage
+            primaryStage.setTitle("Battleship 1.0");
             primaryStage.setScene(scene);
             primaryStage.setHeight(600);
             primaryStage.setWidth(1000);
@@ -101,7 +115,11 @@ public class BattleshipRunner extends Application {
         }
     }
 
+    //methods
 
+    //main methods
+
+    //metoda uruchamia planszę z konfiguracją gry
     private void setConfigurationStage() {
         leftPlane.getChildren().clear();
         leftPlane.getChildren().removeAll();
@@ -115,26 +133,29 @@ public class BattleshipRunner extends Application {
         if (!Objects.equals(rightPlane, null)) {
             rightPlane.getChildren().clear();
         }
-        doCleanComputerBoard();
+        drawCleanComputerBoard();
     }
 
-
+    // metoda uruchamia planszę z grą właściwą
     private void setGameStage() {
         leftPlane.getChildren().clear();
         leftPlane.getChildren().removeAll();
         gameInformationPanel();
 
         stopConfigurationEventsForObjects();
-        doComputerBoardWithShip();
-        setAttackEventsForObjects();
+
+        setComputerBoardWithShip();
+        setAttackEventToComputerBoard();
 
         String difficultyLevel = choiceDifficultyLevel.getValue();
-        computerPlayer.attackConfiguration(humanBoard, difficultyLevel);
+        computerPlayer.computerMoves(humanBoard, difficultyLevel);
         computerPane.setEffect(null);
         playerTurn = true;
     }
 
+    //other methods
 
+    //metoda rysuje panel konfiguracyjny dla gry
     private void configurationPanel() {
 
         textFieldShips.clear();
@@ -144,27 +165,7 @@ public class BattleshipRunner extends Application {
         optionsLabel.setText("GAME OPTIONS");
         leftPlane.add(optionsLabel, 0, 0, 3, 1);
 
-        for (int i = 1; i <= 5; i++) {
-            Label textShip = new Label();
-            textShip.setText("Number of " + i + " size ship:");
-            leftPlane.add(textShip, 0, (i * 2) - 1, 3, 1);
-
-            Button buttonMinusShip = new Button();
-            buttonMinusShip.setText("-");
-            clickPlusMinusButton(buttonMinusShip);
-            leftPlane.add(buttonMinusShip, 0, (i * 2), 1, 1);
-
-            TextField textFieldShip = new TextField();
-            textFieldShip.setText("1");
-            textFieldShip.setEditable(false);
-            textFieldShips.add(textFieldShip);
-            leftPlane.add(textFieldShips.getLast(), 1, (i * 2), 1, 1);
-
-            Button buttonPlusShip = new Button();
-            buttonPlusShip.setText("+");
-            clickPlusMinusButton(buttonPlusShip);
-            leftPlane.add(buttonPlusShip, 2, (i * 2), 1, 1);
-        }
+        drawNumberOfShipsForm();
 
         Label emptyLabel1 = new Label();
         emptyLabel1.getStyleClass().clear();
@@ -196,7 +197,32 @@ public class BattleshipRunner extends Application {
 
     }
 
+    //metoda tworzy formularz wyboru ilości statków w grze
+    private void drawNumberOfShipsForm() {
+        for (int i = 1; i <= 5; i++) {
+            Label textShip = new Label();
+            textShip.setText("Number of " + i + " size ship:");
+            leftPlane.add(textShip, 0, (i * 2) - 1, 3, 1);
 
+            Button buttonMinusShip = new Button();
+            buttonMinusShip.setText("-");
+            clickPlusMinusButton(buttonMinusShip);
+            leftPlane.add(buttonMinusShip, 0, (i * 2), 1, 1);
+
+            TextField textFieldShip = new TextField();
+            textFieldShip.setText("1");
+            textFieldShip.setEditable(false);
+            textFieldShips.add(textFieldShip);
+            leftPlane.add(textFieldShips.getLast(), 1, (i * 2), 1, 1);
+
+            Button buttonPlusShip = new Button();
+            buttonPlusShip.setText("+");
+            clickPlusMinusButton(buttonPlusShip);
+            leftPlane.add(buttonPlusShip, 2, (i * 2), 1, 1);
+        }
+    }
+
+    //metoda inicjuje panel informacyjny w trakcie gry właściwej
     private void gameInformationPanel() {
         setInformationOnLabel(textInformation, "neutral-information", "Your turn!");
         leftPlane.add(textInformation, 0, 0);
@@ -205,7 +231,7 @@ public class BattleshipRunner extends Application {
         leftPlane.add(mainButton, 0, 1);
     }
 
-
+    //metoda tworzy planszę gracza gotową do ustawiania statków własnych
     private void configurationHumanBoard() {
 
         int lengthHumanSquare = 30;
@@ -220,6 +246,20 @@ public class BattleshipRunner extends Application {
         centerPlane.getChildren().addAll(humanPane);
     }
 
+    //metoda ustawia domyślną ilość statków na planszy gracza
+    private void setDefaultShipsOnHumanBoard() {
+        for (int i = 0; i < textFieldShips.size(); i++) {
+            for (int j = 0; j < Integer.valueOf(textFieldShips.get(i).getText()); j++) {
+                Ship randomShip = generator.randomShip(humanBoard, i + 1);
+                boolean checkCompletePut = humanBoard.setIntoBoard(randomShip, randomShip.getActualYPosition(), randomShip.getActualXPosition(), "add");
+                if (!checkCompletePut) {
+                    j--;
+                }
+            }
+        }
+    }
+
+    //metoda przypisuje metody nasłuchujące ruch myszy na elementach tablicy gracza
     private void setConfigurationEventsForObjects() {
         for (Node child : humanPane.getChildrenUnmodifiable()) {
 
@@ -236,19 +276,7 @@ public class BattleshipRunner extends Application {
         }
     }
 
-    private void setDefaultShipsOnHumanBoard() {
-        for (int i = 0; i < textFieldShips.size(); i++) {
-            for (int j = 0; j < Integer.valueOf(textFieldShips.get(i).getText()); j++) {
-                Ship randomShip = generator.randomShip(humanBoard, i + 1);
-                boolean checkCompletePut = humanBoard.setIntoBoard(randomShip, randomShip.getActualYPosition(), randomShip.getActualXPosition(), "add");
-                if (!checkCompletePut) {
-                    j--;
-                }
-            }
-        }
-    }
-
-
+    //metoda zatrzymuje nasłuchiwanie ruchu myszy na elementach tablicy gracza
     private void stopConfigurationEventsForObjects() {
         for (Map.Entry<ImageView, Ship> entry : humanBoard.getShipsWithViewMap().entrySet()) {
             humanBoard.setIntoBoard(entry.getValue(), entry.getValue().getActualYPosition(), entry.getValue().getActualXPosition(), "remove");
@@ -260,23 +288,8 @@ public class BattleshipRunner extends Application {
         }
     }
 
-
-    private Map<ImageView, Ship> sortFleet(Board board) {
-        List<Ship> shipsBySize = new ArrayList<>(board.getShipsWithViewMap().values());
-
-        shipsBySize.sort(Comparator.comparingInt(Ship::getShipSize));
-
-        board.getShipsWithViewMap().clear();
-        LinkedHashMap<ImageView, Ship> sortedBoardMap = new LinkedHashMap<>();
-
-        for (int i = shipsBySize.size() - 1; i >= 0; i--) {
-            board.getShipsWithViewMap().put(shipsBySize.get(i).getShipImageView(), shipsBySize.get(i));
-            sortedBoardMap.put(shipsBySize.get(i).getShipImageView(), shipsBySize.get(i));
-        }
-        return sortedBoardMap;
-    }
-
-    private void doCleanComputerBoard() {
+    //metoda rysuje pustą tablicę należącą do komputera
+    private void drawCleanComputerBoard() {
         int lengthComputerSquare = 30;
         computerBoard = new Board(boardSize, boardSize, lengthComputerSquare, "computer-board");
         computerPane = computerBoard.doBoard();
@@ -286,27 +299,17 @@ public class BattleshipRunner extends Application {
         rightPlane.getChildren().addAll(computerPane);
     }
 
-
-    private void doComputerBoardWithShip() {
+    //metoda ustawia statki na tablicy komputera
+    private void setComputerBoardWithShip() {
         Map<ImageView, Ship> sortHumanFleet = sortFleet(humanBoard);
-        setComputerShips(sortHumanFleet);
-    }
-
-    private void setComputerShips(Map<ImageView, Ship> sortHumanFleet) {
         while (sortHumanFleet.size() != computerBoard.getShipsWithViewMap().size()) {
-            Iterator<Map.Entry<ImageView, Ship>>
-                    iterator;
+            Iterator<Map.Entry<ImageView, Ship>> iterator;
             iterator = sortHumanFleet.entrySet().iterator();
             while (iterator.hasNext()) {
                 Map.Entry<ImageView, Ship> entry = iterator.next();
                 int humanShipSize = entry.getValue().getShipSize();
 
-                ArrayList<Integer> randomCellsList = generator.randomCellsBoardList(computerBoard);
-
-                Ship randomShip = generator.randomShip(computerBoard, humanShipSize);
-                char firstRandomShipOrientation = randomShip.getShipOrientation();
-
-                findPlaceForShipOnComputerBoard(randomCellsList, randomShip, firstRandomShipOrientation);
+                findPlaceForShipOnComputerBoard(humanShipSize);
             }
             if (humanBoard.getShipsWithViewMap().size() != computerBoard.getShipsWithViewMap().size()) {
                 computerBoard.getShipsWithViewMap().clear();
@@ -314,7 +317,11 @@ public class BattleshipRunner extends Application {
         }
     }
 
-    private void findPlaceForShipOnComputerBoard(ArrayList<Integer> randomCellsList, Ship randomShip, char firstRandomShipOrientation) {
+    //metoda szuka wolnego miejsca dla statku komputera na jego tablicy
+    private void findPlaceForShipOnComputerBoard(int humanShipSize) {
+        ArrayList<Integer> randomCellsList = generator.randomCellsBoardList(computerBoard);
+        Ship randomShip = generator.randomShip(computerBoard, humanShipSize);
+        char firstRandomShipOrientation = randomShip.getShipOrientation();
         boolean isAdd;
         for (int i = 0; i < randomCellsList.size(); i++) {
             randomShip.setActualXPosition((int) Math.floor(randomCellsList.get(i) / 10));
@@ -330,8 +337,24 @@ public class BattleshipRunner extends Application {
         }
     }
 
+    //metoda sortuje statki w rozgrywce od największego do najmniejszego
+    private Map<ImageView, Ship> sortFleet(Board board) {
+        List<Ship> shipsBySize = new ArrayList<>(board.getShipsWithViewMap().values());
 
-    private void setAttackEventsForObjects() {
+        shipsBySize.sort(Comparator.comparingInt(Ship::getShipSize));
+
+        board.getShipsWithViewMap().clear();
+        LinkedHashMap<ImageView, Ship> sortedBoardMap = new LinkedHashMap<>();
+
+        for (int i = shipsBySize.size() - 1; i >= 0; i--) {
+            board.getShipsWithViewMap().put(shipsBySize.get(i).getShipImageView(), shipsBySize.get(i));
+            sortedBoardMap.put(shipsBySize.get(i).getShipImageView(), shipsBySize.get(i));
+        }
+        return sortedBoardMap;
+    }
+
+    //metoda inicjuje metody nasłuchujące ruch myszy na tablicy komputera dla gry właściwej
+    private void setAttackEventToComputerBoard() {
         for (Node child : computerPane.getChildrenUnmodifiable()) {
 
             if (child instanceof StackPane) {
@@ -341,29 +364,26 @@ public class BattleshipRunner extends Application {
         }
     }
 
-    private boolean checkFreeSpaceOnBoard(int newShipSize) {
-        double occupiedSpace = newShipSize;
-        for (int i = 0; i < textFieldShips.size(); i++) {
-            occupiedSpace += Integer.valueOf(textFieldShips.get(i).getText()) * (i + 1);
-        }
-        double occupiedSpacePercent = occupiedSpace / (humanBoard.getBoardRows() * humanBoard.getBoardColumns());
-        return occupiedSpacePercent <= 0.35;
-    }
+    //Mouse Events Method
 
+    //metoda zmienia status gry po kliknięciu w main button
     private void clickMainButton(Button button) {
         button.setOnMousePressed(e -> {
-            if(Objects.equals(gameStage, "configuration")) {
+            if(Objects.equals(gameStage, "configuration") && humanBoard.getShipsWithViewMap().size() > 0) {
                 gameStage = "game";
                 setGameStage();
 
             } else if (Objects.equals(gameStage, "game")) {
                 gameStage = "configuration";
                 setConfigurationStage();
+
+            } else {
+                setInformationOnLabel(textInformation, "error-information", "You must have minimum one ship!");
             }
         });
     }
 
-
+    //metoda zmienia ilość statków po kliknięciu w button + lub -
     private void clickPlusMinusButton(Button button) {
         button.setOnMousePressed(e -> {
             if (!iDoSomething) {
@@ -375,7 +395,6 @@ public class BattleshipRunner extends Application {
 
                 if (Objects.equals(button.getText(), "-") && getActualNumberOfShip > 0) {
                     thisTextField.setText(Integer.toString(getActualNumberOfShip - 1));
-
                     removeShipFromBoard(shipSize);
 
                 } else if (Objects.equals(button.getText(), "+") && checkFreeSpaceOnBoard(shipSize)) {
@@ -396,17 +415,27 @@ public class BattleshipRunner extends Application {
                     iDoSomething = false;
                 }
             } else {
-                textInformation.setText("I do something!");
+                setInformationOnLabel(textInformation, "error-information", "I do something! Try later!");
             }
         });
     }
 
-    private void setInformationOnLabel(Label textLabel, String styleClass, String information) {
-        textLabel.setText(information);
-        textLabel.getStyleClass().clear();
-        textLabel.getStyleClass().add(styleClass);
+    //metoda usuwa statek z tablicy gracza
+    private void removeShipFromBoard(int shipSize) {
+        for (Map.Entry<ImageView, Ship> entry : humanBoard.getShipsWithViewMap().entrySet()) {
+            if (entry.getValue().getShipSize() == shipSize) {
+                humanBoard.setIntoBoard(entry.getValue(), 0, 0, "remove");
+                humanBoard.removeShipsWithViewMap(entry.getKey());
+                humanBoard.getBoard().getChildren().remove(entry.getKey());
+                iDoSomething = false;
+                break;
+            }
+        }
+
+        setInformationOnLabel(textInformation, "neutral-information", "We can start, when you will be ready!");
     }
 
+    //metoda szuka wolnego miejsca na tablicy gracza do wstawienia nowego statku
     private boolean findPlaceForNewShipOnHumanBoard(TextField thisTextField, int getActualNumberOfShip, Ship randomShip, char firstRandomShipOrientation, ArrayList<Integer> randomCellsList) {
         boolean isAdd = false;
         for (int i = 0; i < randomCellsList.size(); i++) {
@@ -429,21 +458,24 @@ public class BattleshipRunner extends Application {
         return isAdd;
     }
 
-    private void removeShipFromBoard(int shipSize) {
-        for (Map.Entry<ImageView, Ship> entry : humanBoard.getShipsWithViewMap().entrySet()) {
-            if (entry.getValue().getShipSize() == shipSize) {
-                boolean checkCompletePut = humanBoard.setIntoBoard(entry.getValue(), 0, 0, "remove");
-                humanBoard.removeShipsWithViewMap(entry.getKey());
-                humanBoard.getBoard().getChildren().remove(entry.getKey());
-                iDoSomething = false;
-                break;
-            }
+    //metoda sprawdza wolne miejsce na tablicy po dodaniu kolejnego statku
+    private boolean checkFreeSpaceOnBoard(int newShipSize) {
+        double occupiedSpace = newShipSize;
+        for (int i = 0; i < textFieldShips.size(); i++) {
+            occupiedSpace += Integer.valueOf(textFieldShips.get(i).getText()) * (i + 1);
         }
-
-        setInformationOnLabel(textInformation, "neutral-information", "We can start, when you will be ready!");
+        double occupiedSpacePercent = occupiedSpace / (humanBoard.getBoardRows() * humanBoard.getBoardColumns());
+        return occupiedSpacePercent <= 0.35;
     }
 
+    //metoda zmienia tekst dla elementu text label i dodaje do niego wskazaną klasę CSS
+    private void setInformationOnLabel(Label textLabel, String styleClass, String information) {
+        textLabel.setText(information);
+        textLabel.getStyleClass().clear();
+        textLabel.getStyleClass().add(styleClass);
+    }
 
+    //metoda zmienia orientację dla wskazanego statku
     private void clickRightButtonOnShip(ImageView shipImageView) {
         shipImageView.setOnMousePressed(e -> {
             if (e.getButton() == MouseButton.SECONDARY) {
@@ -471,41 +503,7 @@ public class BattleshipRunner extends Application {
         });
     }
 
-    private void canNotChangeShipOrientation(ImageView shipImageView, Ship thisShip) {
-        thisShip.changeShipOrientation();
-        humanBoard.removeShipsWithViewMap(shipImageView);
-        humanBoard.getBoard().getChildren().remove(shipImageView);
-        humanBoard.setIntoBoard(thisShip, thisShip.getActualYPosition(), thisShip.getActualXPosition(), "add");
-        setInformationOnLabel(textInformation, "error-information", "I can't do this! Maybe you can change ships positions?");
-        iDoSomething = false;
-    }
-
-    private boolean findPlaceAnywhereForNewShipOrientation(ImageView shipImageView, Ship thisShip) {
-        ArrayList<Integer> randomCellsList = generator.randomCellsBoardList(humanBoard);
-        boolean checkCompletePutNewShipOrientation = false;
-
-        for (Integer integer : randomCellsList) {
-            int newShipStartPositionX = (int) Math.floor(integer / 10);
-            int newShipStartPositionY = integer % 10;
-            checkCompletePutNewShipOrientation = humanBoard.setIntoBoard(thisShip, newShipStartPositionY, newShipStartPositionX, "onlyCheck");
-            if (checkCompletePutNewShipOrientation) {
-                checkCompletePutNewShipOrientation = changeShipOrientationComplete(shipImageView, thisShip, newShipStartPositionX, newShipStartPositionY);
-                break;
-            }
-        }
-        return checkCompletePutNewShipOrientation;
-    }
-
-    private boolean changeShipOrientationComplete(ImageView shipImageView, Ship thisShip, int newShipStartPositionX, int newShipStartPositionY) {
-        boolean checkCompletePutNewShipOrientation;
-        humanBoard.getBoard().getChildren().remove(shipImageView);
-        checkCompletePutNewShipOrientation = humanBoard.setIntoBoard(thisShip, newShipStartPositionY, newShipStartPositionX, "add");
-        dragImageView(thisShip.getShipImageView());
-        clickRightButtonOnShip(thisShip.getShipImageView());
-        setInformationOnLabel(textInformation, "neutral-information", "We can start, when you will be ready!");
-        return checkCompletePutNewShipOrientation;
-    }
-
+    // metoda znajduje miejsce do wstawienia statku z nową orientacją wokół dotychczasowej pozycji
     private boolean findPlaceAroundForNewShipOrientation(ImageView shipImageView, Ship thisShip, char shipStartOrientation, int shipStartPositionX, int shipStartPositionY) {
         boolean checkCompletePutNewShipOrientation;
         boolean changeVector = false;
@@ -548,6 +546,44 @@ public class BattleshipRunner extends Application {
         return checkCompletePutNewShipOrientation;
     }
 
+    //metoda znajduje miejsce do wstawienia statku ze zmienioną orientacją gdziekolwiek na tablicy
+    private boolean findPlaceAnywhereForNewShipOrientation(ImageView shipImageView, Ship thisShip) {
+        ArrayList<Integer> randomCellsList = generator.randomCellsBoardList(humanBoard);
+        boolean checkCompletePutNewShipOrientation = false;
+
+        for (Integer integer : randomCellsList) {
+            int newShipStartPositionX = (int) Math.floor(integer / 10);
+            int newShipStartPositionY = integer % 10;
+            checkCompletePutNewShipOrientation = humanBoard.setIntoBoard(thisShip, newShipStartPositionY, newShipStartPositionX, "onlyCheck");
+            if (checkCompletePutNewShipOrientation) {
+                checkCompletePutNewShipOrientation = changeShipOrientationComplete(shipImageView, thisShip, newShipStartPositionX, newShipStartPositionY);
+                break;
+            }
+        }
+        return checkCompletePutNewShipOrientation;
+    }
+
+    //metoda wstawia statek ze zmnienioną orientacją na tablicę
+    private boolean changeShipOrientationComplete(ImageView shipImageView, Ship thisShip, int newShipStartPositionX, int newShipStartPositionY) {
+        humanBoard.getBoard().getChildren().remove(shipImageView);
+        boolean checkCompletePutNewShipOrientation = humanBoard.setIntoBoard(thisShip, newShipStartPositionY, newShipStartPositionX, "add");
+        dragImageView(thisShip.getShipImageView());
+        clickRightButtonOnShip(thisShip.getShipImageView());
+        setInformationOnLabel(textInformation, "neutral-information", "We can start, when you will be ready!");
+        return checkCompletePutNewShipOrientation;
+    }
+
+    //metoda anuluję zmianę orientacji statku
+    private void canNotChangeShipOrientation(ImageView shipImageView, Ship thisShip) {
+        thisShip.changeShipOrientation();
+        humanBoard.removeShipsWithViewMap(shipImageView);
+        humanBoard.getBoard().getChildren().remove(shipImageView);
+        humanBoard.setIntoBoard(thisShip, thisShip.getActualYPosition(), thisShip.getActualXPosition(), "add");
+        setInformationOnLabel(textInformation, "error-information", "I can't do this! Maybe you can change ships positions?");
+        iDoSomething = false;
+    }
+
+    //drag and drop ship
     private void dragImageView(ImageView shipImage) {
         shipImage.setOnDragDetected(e -> {
             Dragboard dragBoard = shipImage.startDragAndDrop(TransferMode.MOVE);
@@ -600,6 +636,7 @@ public class BattleshipRunner extends Application {
 
     }
 
+    //aktywuje atak gracza na tablicę komputera
     private void playerAttack(StackPane pane) {
         pane.setOnMousePressed(e -> {
             if (playerTurn) {
@@ -610,6 +647,8 @@ public class BattleshipRunner extends Application {
                         setInformationOnLabel(textInformation, "good-information", "! YOU WIN !");
                         mainButton.setText("Play again");
                         playerTurn = false;
+                        computerPane.setEffect(new GaussianBlur());
+                        humanPane.setEffect(new GaussianBlur());
                     }
                 } else {
                     playerTurn = false;
@@ -619,6 +658,7 @@ public class BattleshipRunner extends Application {
         });
     }
 
+   //aktywuje atak komputera na tablicę gracza
     private void computerAttack() {
         setInformationOnLabel(textInformation, "neutral-information", "Computer turn!");
         computerPane.setEffect(new GaussianBlur());
@@ -627,6 +667,7 @@ public class BattleshipRunner extends Application {
             if (humanBoard.getShipsWithViewMap().size() == 0) {
                 setInformationOnLabel(textInformation, "error-information", "! YOU LOST !");
                 mainButton.setText("Try again, please");
+                humanPane.setEffect(new GaussianBlur());
             } else {
                 Timeline timeline = new Timeline(new KeyFrame(
                         Duration.millis(1000),

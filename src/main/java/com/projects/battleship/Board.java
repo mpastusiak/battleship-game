@@ -27,13 +27,9 @@ class Board {
         GridPane board = new GridPane();
         board.getStyleClass().add(boardStyle);
 
-        doBoardPutRows(board);
-
-        doBoardPutColumns(board);
-
-        board.getStyleClass().add(boardStyle);
-
-        doBoardPutCells(board);
+        setBoardRows(board);
+        setBoardColumns(board);
+        setBoardCells(board);
 
         this.board = board;
         this.reservedCellsMap = new HashMap<>();
@@ -42,7 +38,21 @@ class Board {
         return board;
     }
 
-    private void doBoardPutCells(GridPane board) {
+    private void setBoardRows(GridPane board) {
+        for (int i = 0; i < boardRows; i++) {
+            RowConstraints row = new RowConstraints(lengthSquare);
+            board.getRowConstraints().add(row);
+        }
+    }
+
+    private void setBoardColumns(GridPane board) {
+        for (int i = 0; i < boardColumns; i++) {
+            ColumnConstraints column = new ColumnConstraints(lengthSquare);
+            board.getColumnConstraints().add(column);
+        }
+    }
+
+    private void setBoardCells(GridPane board) {
         for (int i = 0; i < boardRows; i++)
             for (int j = 0; j < boardColumns; j++) {
                 StackPane pane = new StackPane();
@@ -54,43 +64,25 @@ class Board {
             }
     }
 
-    private void doBoardPutColumns(GridPane board) {
-        for (int i = 0; i < boardColumns; i++) {
-            ColumnConstraints column = new ColumnConstraints(lengthSquare);
-            board.getColumnConstraints().add(column);
-        }
-    }
-
-    private void doBoardPutRows(GridPane board) {
-        for (int i = 0; i < boardRows; i++) {
-            RowConstraints row = new RowConstraints(lengthSquare);
-            board.getRowConstraints().add(row);
-        }
-    }
-
-
     public int getLengthSquare() {
         return lengthSquare;
     }
 
-    public String getGameStatus(int idShipPosition) {
+    public String getGameStatusOfCell(int idShipPosition) {
         return board.getChildren().get(idShipPosition).getProperties().get("game-status").toString();
     }
 
-    public void putGameStatus(int idShipPosition, String gameStatus) {
+    public void setGameStatusOfCell(int idShipPosition, String gameStatus) {
         board.getChildren().get(idShipPosition).getProperties().put("game-status", gameStatus);
     }
 
-    public void putStyle(int idShipPosition, String nameStyle) {
+    public void setStyleOfCell(int idShipPosition, String nameStyle) {
         board.getChildren().get(idShipPosition).getStyleClass().clear();
         board.getChildren().get(idShipPosition).getStyleClass().add(nameStyle);
     }
 
     private boolean checkReservedCellOnMap(int keyToBeChecked, String valueToBeChecked) {
-
-        Iterator<Map.Entry<Integer, String>>
-                iterator = reservedCellsMap.entrySet().iterator();
-
+        Iterator<Map.Entry<Integer, String>> iterator = reservedCellsMap.entrySet().iterator();
         boolean isReservedCell = false;
 
         while (iterator.hasNext()) {
@@ -101,9 +93,7 @@ class Board {
             }
         }
         return isReservedCell;
-
     }
-
 
     public boolean setIntoBoard(Ship ship, int shipNewStartPositionY, int shipNewStartPositionX, String type) {
         char shipOrientation = ship.getShipOrientation();
@@ -111,7 +101,6 @@ class Board {
         int idNewShipPosition = shipNewStartPositionX * 10 + shipNewStartPositionY;
         int shipOldStartPositionX = ship.getActualXPosition();
         int shipOldStartPositionY = ship.getActualYPosition();
-        int idOldShipPosition = shipOldStartPositionX * 10 + shipOldStartPositionY;
 
         int colspan = 1;
         int rowspan = 1;
@@ -165,9 +154,7 @@ class Board {
             ship.setActualYPosition(shipNewStartPositionY);
 
             reservedCellsMap.putAll(addCellsMap);
-
             connectShipWithCells(ship, addCellsMap);
-
             fullLoop = true;
 
         } else if (Objects.equals(type, "move")) {
@@ -177,6 +164,7 @@ class Board {
             ship.getShipPositionsList().clear();
             reservedCellsMap.keySet().removeAll(removeCellsMap.keySet());
             panesWithShipsMap.keySet().removeAll(removeCellsMap.keySet());
+
         } else if (addCellsMap.size() > 0 && areInBoardRange && Objects.equals(type, "onlyCheck")) {
             fullLoop = true;
         }
@@ -253,16 +241,12 @@ class Board {
             typeSecondaryCell = "missed";
         }
 
-        outerloop:
         if (shipOrientation == 'v') {
-
             changeCellsOnBoardForVerticalShipPosition(type, shipSize, idShipPosition, typeMainCell, typeSecondaryCell, changeCells);
 
         } else {
-
             changeCellsOnBoardForHorizontalShipPosition(type, shipSize, idShipPosition, typeMainCell, typeSecondaryCell, changeCells);
         }
-
         return changeCells;
     }
 
@@ -345,13 +329,13 @@ class Board {
 
     public void drawContentBoard() {
         for (int i = 0; i < getBoardRows() * getBoardColumns(); i++) {
-            putStyle(i, "cell");
-            putGameStatus(i, "empty");
+            setStyleOfCell(i, "cell");
+            setGameStatusOfCell(i, "empty");
         }
 
         for (Map.Entry<Integer, String> integerStringEntry : reservedCellsMap.entrySet()) {
-            putStyle((Integer) ((Map.Entry) integerStringEntry).getKey(), ((Map.Entry) integerStringEntry).getValue().toString());
-            putGameStatus((Integer) ((Map.Entry) integerStringEntry).getKey(), ((Map.Entry) integerStringEntry).getValue().toString());
+            setStyleOfCell((Integer) ((Map.Entry) integerStringEntry).getKey(), ((Map.Entry) integerStringEntry).getValue().toString());
+            setGameStatusOfCell((Integer) ((Map.Entry) integerStringEntry).getKey(), ((Map.Entry) integerStringEntry).getValue().toString());
         }
     }
 
@@ -395,5 +379,4 @@ class Board {
         paneXYPositionList.addLast(yPosition);
         return paneXYPositionList;
     }
-
 }
