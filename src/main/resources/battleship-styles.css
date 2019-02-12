@@ -11,6 +11,7 @@
     -fx-pref-height: 600;
     -fx-padding: 25;
     -fx-alignment: CENTER-LEFT;
+    -fx-background-color: #64c8ff;
 }
 
 .center-plane, .right-plane {
@@ -23,27 +24,33 @@
 }
 
 .human-board, .computer-board {
-    -fx-padding: 0, 0, 0, 0 ;
+    -fx-padding: 0, 0, 0, 0;
     -fx-border-color: BLACK;
     -fx-border-width: 0.5;
- }
+}
+
 *.cell, .with-ship, .reserved, .hit, .hit-sink, .missed {
     -fx-border-color: BLACK;
     -fx-border-width: 0.5;
     -fx-background-color: WHITE;
 }
+
 .human-board .with-ship {
     -fx-background-color: GREEN;
 }
+
 *.reserved {
     -fx-background-color: WHITE;
 }
+
 *.hit {
     -fx-background-color: PINK;
 }
+
 *.hit-sink {
     -fx-background-color: RED;
 }
+
 *.missed {
     -fx-background-color: #bcbcbc;
 }

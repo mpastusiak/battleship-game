@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
 
-public class RandomValues {
-    Random generator = new Random();
+class RandomValues {
+    private final Random generator = new Random();
 
-    public int randomValue(int maxValue) {
+    private int randomValue(int maxValue) {
         return generator.nextInt(maxValue);
     }
 
@@ -19,13 +19,13 @@ public class RandomValues {
         }
     }
 
-    public ArrayList<Integer> randomCellsList(Board board) {
+    public ArrayList<Integer> randomCellsBoardList(Board board) {
         int boardColumns = board.getBoardColumns();
         int boardRows = board.getBoardRows();
         int maxValue = boardColumns * boardRows;
 
-        ArrayList<Integer> randomList = new ArrayList<Integer>(maxValue);
-        for(int i = 0; i < maxValue; i++) {
+        ArrayList<Integer> randomList = new ArrayList<>(maxValue);
+        for (int i = 0; i < maxValue; i++) {
             randomList.add(i);
         }
 
@@ -35,7 +35,7 @@ public class RandomValues {
     }
 
 
-    public Ship randomShip(Board board, int shipSize){
+    public Ship randomShip(Board board, int shipSize) {
         char shipRandomOrientation = randomOrientation();
 
         int shipMaxPositionX;

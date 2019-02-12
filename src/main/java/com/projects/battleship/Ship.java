@@ -2,13 +2,12 @@ package com.projects.battleship;
 
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.paint.Color;
 
 import java.util.LinkedList;
 
 public class Ship {
-    private int shipSize;
-    private int fitHeight;
+    private final int shipSize;
+    private final int fitHeight;
     private Image imageClassShip;
     private String urlImageShip;
     private char shipOrientation;
@@ -65,7 +64,9 @@ public class Ship {
         return actualYPosition;
     }
 
-    public LinkedList<Integer> getShipPositionsList() { return shipPanePositionsList; }
+    public LinkedList<Integer> getShipPositionsList() {
+        return shipPanePositionsList;
+    }
 
     public void setPaneShipPositionsList(LinkedList<Integer> shipPanePositionsList) {
         this.shipPanePositionsList = shipPanePositionsList;
