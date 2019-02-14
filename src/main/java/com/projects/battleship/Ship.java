@@ -2,6 +2,8 @@ package com.projects.battleship;
 
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.paint.ImagePattern;
+import javafx.scene.shape.Rectangle;
 
 import java.util.LinkedList;
 
@@ -40,6 +42,7 @@ public class Ship {
         Image image = imageClassShip;
         ImageView imageView = new ImageView(image);
         imageView.getStyleClass().add("ship");
+        imageView.setPickOnBounds(true);
         this.shipImageView = imageView;
         return imageView;
     }

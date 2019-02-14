@@ -132,8 +132,8 @@ class AI {
         return i;
     }
 
-    public boolean attack(Board board) {
-        boolean isHit = attack.attack(board, attackCellsList.get(0));
+    public Boolean attack(Board board) {
+        Boolean isHit = attack.attack(board, attackCellsList.get(0));
         attackCellsList.remove(0);
         return isHit;
     }

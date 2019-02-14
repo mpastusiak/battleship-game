@@ -1,8 +1,12 @@
 package com.projects.battleship;
 
+import javafx.geometry.Rectangle2D;
+import javafx.scene.Node;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.shape.Shape;
 
+import java.awt.*;
 import java.util.*;
 
 class Board {

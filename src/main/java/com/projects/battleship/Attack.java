@@ -5,8 +5,8 @@ import java.util.ListIterator;
 import java.util.Objects;
 
 class Attack {
-    public boolean attack(Board board, Integer idPane) {
-        boolean isHit = false;
+    public Boolean attack(Board board, Integer idPane) {
+        Boolean isHit = false;
         String paneGameStatus = board.getGameStatusOfCell(idPane);
         switch (paneGameStatus) {
             case "with-ship":
@@ -25,7 +25,8 @@ class Attack {
             case "hit":
             case "hit-sink":
             case "missed":
-                isHit = true;
+                isHit = null;
+                break;
 
             default: {
                 break;

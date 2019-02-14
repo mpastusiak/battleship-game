@@ -15,10 +15,7 @@ import javafx.scene.effect.GaussianBlur;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.Stop;
+import javafx.scene.paint.*;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -641,8 +638,9 @@ public class BattleshipRunner extends Application {
         pane.setOnMousePressed(e -> {
             if (playerTurn) {
                 Integer idPane = Integer.parseInt(pane.getId());
-                boolean isHit = attack.attack(computerBoard, idPane);
-                if (isHit) {
+                Boolean isHit = attack.attack(computerBoard, idPane);
+
+                if (Objects.equals(isHit, true)) {
                     if (computerBoard.getShipsWithViewMap().size() == 0) {
                         setInformationOnLabel(textInformation, "good-information", "! YOU WIN !");
                         mainButton.setText("Play again");
@@ -650,31 +648,39 @@ public class BattleshipRunner extends Application {
                         computerPane.setEffect(new GaussianBlur());
                         humanPane.setEffect(new GaussianBlur());
                     }
+                } else if (Objects.equals(isHit, null)) {
+                    playerTurn = true;
                 } else {
                     playerTurn = false;
-                    computerAttack();
+                    delayedComputerAttack(1000);
                 }
             }
         });
     }
 
    //aktywuje atak komputera na tablicę gracza
-    private void computerAttack() {
-        setInformationOnLabel(textInformation, "neutral-information", "Computer turn!");
+    private void delayedComputerAttack(int timeDelayed) {
         computerPane.setEffect(new GaussianBlur());
-        boolean isHit = computerPlayer.attack(humanBoard);
-        if (isHit) {
+        setInformationOnLabel(textInformation, "neutral-information", "Computer turn!");
+        Timeline timeline = new Timeline(new KeyFrame(
+                Duration.millis(timeDelayed),
+                ae -> computerAttack()));
+        timeline.play();
+    }
+
+    private void computerAttack() {
+        Boolean isHit = computerPlayer.attack(humanBoard);
+        if (Objects.equals(isHit, true)) {
             if (humanBoard.getShipsWithViewMap().size() == 0) {
                 setInformationOnLabel(textInformation, "error-information", "! YOU LOST !");
                 mainButton.setText("Try again, please");
                 humanPane.setEffect(new GaussianBlur());
             } else {
-                Timeline timeline = new Timeline(new KeyFrame(
-                        Duration.millis(1000),
-                        ae -> computerAttack()));
-                timeline.play();
+                delayedComputerAttack(1000);
             }
-        } else {
+        } else if (Objects.equals(isHit, null)) {
+            delayedComputerAttack(1);
+        }  else {
             playerTurn = true;
             setInformationOnLabel(textInformation, "neutral-information", "Your turn!");
             computerPane.setEffect(null);
